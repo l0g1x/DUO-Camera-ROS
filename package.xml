@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>duo3d_ros</name>
-  <version>0.1.0</version>
+  <version>0.2.0</version>
   <description>The DUO3d ROS driver for both just a plain stereo camera driver, as well as a driver for disparity processing using the Dense3D DUO Library.</description>
 
   <maintainer email="krgebis@gmail.com">Krystian Gebis (L0g1x)</maintainer>
