@@ -1,0 +1,38 @@
+<launch>
+    <node pkg="duo3d_ros" name="duo_node" type="duo_node">
+
+        <param name="frame_id"   value="camera" />
+
+        <!--    DUO Possible Frame Rates:       -->
+        <!--    -------------------------       -->
+        <!--       [56]  FPS @ 752x480          -->
+        <!--       [62]  FPS @ 640x480          -->
+        <!--       [123] FPS @ 640x240          -->
+        <!--       [240] FPS @ 640x120          -->
+        <!--       [93]  FPS @ 320x480          -->
+        <!--       [184] FPS @ 320x240          -->
+        <!--       [360] FPS @ 320x120          -->
+        <!--                                    -->
+        <!--    If you are more interested in
+                the resolution, just choose the
+                corresponding frame rate.
+	PLEASE CHOOSE ONE OF THESE FOR BINNING PURPOSES!  -->
+
+        <param name="FPS"   value="62" />
+        <!-- =================================  -->
+
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+        <param name=""   value="" />
+    </node>
+
+</launch>
