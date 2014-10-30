@@ -39,8 +39,8 @@ bool Initialize()
 	nLocal.param<std::string>("frame_id", cameraFrame, "duo3d_camera");
 
 	// @brief: 	param function does not use <Float> for input source (framesPerSecond) 
-			so we have to pass double, and then cast to float to satisfy DUOResolutionInfo 
-			fps variable of type float
+	//		so we have to pass double, and then cast to float to satisfy DUOResolutionInfo 
+	//		fps variable of type float
 	double 	framesPerSecond;
 	nLocal.param("FPS", framesPerSecond, 30.0);
 
@@ -56,7 +56,7 @@ bool Initialize()
 
     	// Select 320x240 resolution with 2x2 binning capturing at 10FPS
 	// These values should be ROS Params
-	if(EnumerateResolutions(&duoResolutionInfo, 1, 320, 240, DUO_BIN_HORIZONTAL2+DUO_BIN_VERTICAL2, 30))
+	if(EnumerateResolutions(&duoResolutionInfo, 1, 320, 240, DUO_BIN_NONE, 30))
 	{
 		if(OpenDUO(&duoInstance))
 		{
@@ -65,6 +65,10 @@ bool Initialize()
 			GetDUOFirmwareVersion(	duoInstance, duoDeviceFirmwareVersion);
 			GetDUOFirmwareBuild(	duoInstance, duoDeviceFirmwareBuild);
 			SetDUOResolutionInfo( 	duoInstance, duoResolutionInfo);
+
+			SetDUOExposure(duoInstance, 90);
+			SetDUOGain(duoInstance, 100);
+			SetDUOLedPWM(duoInstance, 69);
 
 			return true;
 		}
@@ -80,11 +84,42 @@ bool Initialize()
 
 void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 {
-    ROS_INFO("  Timestamp:          %10.1f ms\n", pFrameData->timeStamp/10.0f);
-    ROS_INFO("  Frame Size:         %dx%d\n", pFrameData->width, pFrameData->height);
-    ROS_INFO("  Left Frame Buffer:  %p\n", pFrameData->leftData);
-    ROS_INFO("  Right Frame Buffer: %p\n", pFrameData->rightData);
-    ROS_INFO("------------------------------------------------------\n");
+	ros::Time 	timeNow		= ros::Time::now();
+	std::string	frame		= "duo3d_camera";
+
+	leftImage.header.stamp 		= timeNow;
+	leftImage.header.frame_id 	= frame;
+
+	rightImage.header.stamp		= timeNow;
+	rightImage.header.frame_id	= frame;
+
+	// Fill the left image message
+	sensor_msgs::fillImage(	leftImage, 
+				sensor_msgs::image_encodings::MONO8, 
+				240, 
+				320,
+				320,
+				pFrameData->leftData);
+
+	// Fill the right image message
+        sensor_msgs::fillImage( rightImage,
+                                sensor_msgs::image_encodings::MONO8,
+                                240,
+                                320,
+                                320,
+                                pFrameData->rightData);
+
+	leftImagePub.publish(leftImage);
+	rightImagePub.publish(rightImage);
+
+	sensor_msgs::clearImage(leftImage);
+	sensor_msgs::clearImage(rightImage);
+
+    	ROS_INFO("  Timestamp:          %10.1f ms\n", pFrameData->timeStamp/10.0f);
+    	ROS_INFO("  Frame Size:         %dx%d\n", pFrameData->width, pFrameData->height);
+    	ROS_INFO("  Left Frame Buffer:  %p\n", pFrameData->leftData);
+    	ROS_INFO("  Right Frame Buffer: %p\n", pFrameData->rightData);
+    	ROS_INFO("------------------------------------------------------\n");
 }
 
 int main(int argc, char** argv)
@@ -92,10 +127,16 @@ int main(int argc, char** argv)
     	ros::init(argc, argv, "duo3d_camera");
 	ros::NodeHandle n;
 
+	leftImagePub 	= n.advertise<sensor_msgs::Image>("image_raw/left", 1);
+	rightImagePub 	= n.advertise<sensor_msgs::Image>("image_raw/right", 1);
+
 	if (Initialize() == true)
 	{
-		// Temporary
 		StartDUO(duoInstance, DUOCallback, NULL);
+		while(ros::ok())
+		{
+			ros::spinOnce();
+		}
 		StopDUO(duoInstance);
 		CloseDUO(duoInstance);		
 	}
