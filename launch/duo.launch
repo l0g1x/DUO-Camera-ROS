@@ -15,6 +15,10 @@
 	<param name="resolution_width"	value="320" />
 	<param name="resolution_height"	value="240" />
 
+	<param name="exposure"		value="40"  />
+	<param name="gain"		value="70"  /> 
+	<param name="led_lighting"	value="50"  />
+
     	<param name="use_DUO_imu"   	value="true" />
     	<param name="use_DUO_LEDs"   	value="true" />
     </node>

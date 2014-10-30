@@ -77,10 +77,17 @@ bool Initialize()
 			GetDUOFirmwareBuild(	duoInstance, duoDeviceFirmwareBuild);
 			SetDUOResolutionInfo( 	duoInstance, duoResolutionInfo);
 
+			int exposure;
+			int gain;
+			int led_lighting;
+			nLocal.param("exposure"		, exposure	, 50);
+			nLocal.param("gain"		, gain 		, 50);
+			nLocal.param("led_lighting"	, led_lighting	, 50);
+
 			// These need to be roslaunch parameters. Will make dynamic reconfig 
-			SetDUOExposure(duoInstance, 90);
-			SetDUOGain(duoInstance, 100);
-			SetDUOLedPWM(duoInstance, 48);
+			SetDUOExposure(duoInstance, exposure);
+			SetDUOGain(duoInstance, gain);
+			SetDUOLedPWM(duoInstance, led_lighting);
 
 			return true;
 		}
