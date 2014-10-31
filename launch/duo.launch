@@ -12,8 +12,8 @@
 		the duo_dense3d.launch file requires. -->	
 	<param name="FPS"   value="30" />
 
-	<param name="resolution_width"	value="320" />
-	<param name="resolution_height"	value="240" />
+	<param name="resolution_width"	value="752" />
+	<param name="resolution_height"	value="480" />
 
 	<param name="exposure"		value="40"  />
 	<param name="gain"		value="70"  /> 
