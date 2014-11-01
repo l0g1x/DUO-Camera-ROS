@@ -67,7 +67,7 @@ bool Initialize()
 	// These values should be ROS Params
 	// As of right now, no binning since I dont know anything about binning (yet...)
 	//
-	if(EnumerateResolutions(&duoResolutionInfo, 1, 320, 240, DUO_BIN_NONE, 30))
+	if(EnumerateResolutions(&duoResolutionInfo, 1, 752, 480, DUO_BIN_NONE, 20))
 	{
 		if(OpenDUO(&duoInstance))
 		{
@@ -128,9 +128,9 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 
         sensor_msgs::fillImage( rightImage,
                                 sensor_msgs::image_encodings::MONO8,
-                                240,
-                                320,
-                                320,
+                                pFrameData->height,
+                                pFrameData->width,
+                                pFrameData->width,
                                 pFrameData->rightData);
 
 	// Publish the sensor_msgs::Image message
