@@ -77,9 +77,7 @@ bool Initialize()
 			GetDUOFirmwareBuild(	duoInstance, duoDeviceFirmwareBuild);
 			SetDUOResolutionInfo( 	duoInstance, duoResolutionInfo);
 
-			int exposure;
-			int gain;
-			int led_lighting;
+
 			nLocal.param("exposure"		, exposure	, 50);
 			nLocal.param("gain"		, gain 		, 50);
 			nLocal.param("led_lighting"	, led_lighting	, 50);
@@ -153,6 +151,30 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
     	ROS_DEBUG("------------------------------------------------------\n");
 }
 
+// this callback function is called whenever the dynamic_reconfigure server (this node)
+// recieves any new parameters to change. It basically changes the variables in this node
+// based on the dynamic_reconfigure parameters it recieves.
+void dynamicReconfigureCallback(duo3d_ros::DUO3DConfig &config, uint32_t level) 
+{
+  ROS_DEBUG("Reconfigure Request: %d %d %d", 
+            config.exposure, config.gain, 
+            config.led_lighting);
+
+  // if any parameters have changed, then let the DUO camera know and change them
+  if(exposure != config.exposure)
+    SetDUOExposure(duoInstance, exposure);
+  if(gain != config.gain)
+    SetDUOGain(duoInstance, gain);
+  if(led_lighting != config.led_lighting)
+    SetDUOLedPWM(duoInstance, led_lighting);
+
+  // store these new parameter values
+  exposure = config.exposure;
+  gain = config.gain;
+  led_lighting = config.led_lighting;
+
+}
+
 int main(int argc, char** argv)
 {
 	// Initializing the ros node. Must call ros::init() before any NodeHandle
@@ -160,6 +182,17 @@ int main(int argc, char** argv)
 	//
     	ros::init(argc, argv, "duo3d_camera");
 	ros::NodeHandle n;
+
+  exposure = 50;
+  gain = 50;
+  led_lighting = 50;
+  // for dynamic_reconfigure
+  dynamic_reconfigure::Server<duo3d_ros::DUO3DConfig> server;
+  dynamic_reconfigure::Server<duo3d_ros::DUO3DConfig>::CallbackType f;
+
+  f = boost::bind(&dynamicReconfigureCallback, _1, _2);
+  server.setCallback(f);
+
 
 	// initialize the left/right image publishers
 	//

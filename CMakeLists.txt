@@ -6,6 +6,11 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   tf
+  dynamic_reconfigure
+)
+
+generate_dynamic_reconfigure_options(
+  cfg/DUO3D.cfg
 )
 
 # Add DUO include and lib
@@ -43,13 +48,16 @@ elseif(UNIX)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
 endif()
 
-catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf )
+catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf dynamic_reconfigure)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(duo_node src/duo.cpp)
 
 # add_dependencies(duo3d_ros_node duo3d_ros_generate_messages_cpp)
+
+# for linking duo_node to dynamic_reconfigure cfg files
+add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
 
 target_link_libraries(duo_node ${catkin_LIBRARIES} )
 
