@@ -45,7 +45,7 @@ elseif(UNIX)
     set(DUOLib_ARCH x86)
   endif()
   link_directories(${DUO_SDK}/linux/${DUOLib_ARCH}/)
-  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
+  #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
 endif()
 
 catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf dynamic_reconfigure)
