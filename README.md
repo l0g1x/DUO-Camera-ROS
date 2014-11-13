@@ -1,10 +1,14 @@
 DUO-Camera-ROS
 ==============
 
-ROS driver for DUO Stereo camera(s). Specify which camera you are using in your launch file, if it is a custom DUO solution, specify the the camera specifications in the launch parameters.
+This package is a ROS stereo camera driver for DUO cameras. 
 
-There are two different nodes, each with their own respective launch file:
-	- duo_node: 		Plain ROS camera driver that interfaces the DUO camera using the optimized DUO SDK/API
-		- duo_node.launch: Launches this node with custom user specifications for camera settings
-	- duo_dense3d_node: 	Same functionality as duo_node, except also implements the Dense3d DUO Library which processes image disparity (Same thing as stereo_image_proc, except alot more efficient)
-		- duo_dense3d_node.launch: Launches everything needed to get a disparity image, based on user specificied parameters for the camera specifications
+The package can act as either a regular camera driver outputing a left and right camera image, or it can act purely as a stereo camera, outputing a disparity image, and a PointCloud2. The user is not limited to one or the other, both left/right camera images can be provided at the same time as disparity and PointCloud2. 
+
+This driver works ONLY with DUO3D (http://duo3d.com/) cameras. 
+Utilizing the optimized DUO Dense3D library, eliminates the need for other disparity calculation nodes.  
+
+There are two different nodes:
+
+	- duo_node: 			Generic DUO Camera driver (Left/Right image data)
+	- duo_dense3d_node: 	Stereo Camera driver using DUO Dense3D Library
