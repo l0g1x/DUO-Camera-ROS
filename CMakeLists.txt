@@ -6,7 +6,11 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
   tf
+  camera_info_manager
+  image_transport
 )
+
+find_package(Boost REQUIRED)
 
 # Add DUO include and lib
 include_directories(${DUO_SDK}/include)

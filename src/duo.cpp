@@ -101,6 +101,20 @@ bool Initialize()
 	return false;
 }
 
+ros::NodeHandle* pcamera_nh;
+
+#include <cassert>
+
+void publishImages(sensor_msgs::Image &leftImage, sensor_msgs::Image &rightImage)
+{
+	boost::shared_ptr<camera_info_manager::CameraInfoManager> cinfo( new camera_info_manager::CameraInfoManager(*pcamera_nh));
+	sensor_msgs::CameraInfoPtr ci(new sensor_msgs::CameraInfo(cinfo->getCameraInfo()));
+
+        leftImagePub.publish(leftImage, *ci);
+        //rightImagePub.publish(rightImage, *ci);
+}
+
+
 // DUOFrameCallback that gets fired everytime the camera sends a new image
 // Right now it is not using the polling mechanism, which it eventually should be using 
 // since we do not want to spend much time in this callback, as said in the DUO documentation
@@ -109,6 +123,9 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 {
 	ros::Time 	timeNow		= ros::Time::now();
 	std::string	frame		= "duo3d_camera";
+
+	sensor_msgs::Image leftImage;
+	sensor_msgs::Image rightImage;
 
 	// leftImage/rightImage defined in header
 	leftImage.header.stamp 		= timeNow;
@@ -137,8 +154,7 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 
 	// Publish the sensor_msgs::Image message
 	//
-	leftImagePub.publish(leftImage);
-	rightImagePub.publish(rightImage);
+	publishImages(leftImage, rightImage);
 
 	// Clear the image after we sent it. It is part of the fill_image.h
 	//
@@ -160,11 +176,21 @@ int main(int argc, char** argv)
 	//
     	ros::init(argc, argv, "duo3d_camera");
 	ros::NodeHandle n;
+	ros::NodeHandle priv_nh("~");
+	ros::NodeHandle camera_nh("camera");
+
+	pcamera_nh = &camera_nh;
+	boost::shared_ptr<image_transport::ImageTransport> it(new image_transport::ImageTransport(camera_nh));
+
+	leftImagePub   = it->advertiseCamera("image_raw/left", 1);	
+ 	rightImagePub  = it->advertiseCamera("image_raw/right", 1);	
+
+	
 
 	// initialize the left/right image publishers
 	//
-	leftImagePub 	= n.advertise<sensor_msgs::Image>("image_raw/left", 1);
-	rightImagePub 	= n.advertise<sensor_msgs::Image>("image_raw/right", 1);
+	//leftImagePub 	= n.advertise<sensor_msgs::Image>("image_raw/left", 1);
+	//rightImagePub 	= n.advertise<sensor_msgs::Image>("image_raw/right", 1);
 
 	// If we successfully initialized, then start the duo, and loop while
 	// the ros node is ok (did not fail, or someone ctrl+c)
