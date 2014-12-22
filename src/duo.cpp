@@ -108,10 +108,17 @@ ros::NodeHandle* pcamera_nh;
 void publishImages(sensor_msgs::Image &leftImage, sensor_msgs::Image &rightImage)
 {
 	boost::shared_ptr<camera_info_manager::CameraInfoManager> cinfo( new camera_info_manager::CameraInfoManager(*pcamera_nh));
+	cinfo->setCameraName("duo3d");
 	sensor_msgs::CameraInfoPtr ci(new sensor_msgs::CameraInfo(cinfo->getCameraInfo()));
+	
+	ci->height = 750;
+	ci->width  = 480;
+
+	ci->header.frame_id = "duo3d";
+    	ci->header.stamp = ros::Time::now();
 
         leftImagePub.publish(leftImage, *ci);
-        //rightImagePub.publish(rightImage, *ci);
+        rightImagePub.publish(rightImage, *ci);
 }
 
 
@@ -182,10 +189,10 @@ int main(int argc, char** argv)
 	pcamera_nh = &camera_nh;
 	boost::shared_ptr<image_transport::ImageTransport> it(new image_transport::ImageTransport(camera_nh));
 
-	leftImagePub   = it->advertiseCamera("image_raw/left", 1);	
- 	rightImagePub  = it->advertiseCamera("image_raw/right", 1);	
+	leftImagePub   = it->advertiseCamera("left/image_raw", 1);	
+ 	rightImagePub  = it->advertiseCamera("right/image_raw", 1);	
 
-	
+	ros::Rate loop_rate(30);
 
 	// initialize the left/right image publishers
 	//
@@ -201,6 +208,7 @@ int main(int argc, char** argv)
 		while(ros::ok())
 		{
 			ros::spinOnce();
+			loop_rate.sleep();
 		}
 		StopDUO(duoInstance);
 		CloseDUO(duoInstance);		
