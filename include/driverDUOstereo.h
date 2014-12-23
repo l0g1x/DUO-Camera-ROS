@@ -12,10 +12,31 @@ namespace duoStereo_driver
 
 class DUOStereoDriver
 {
-
-public:
-	DUOStereoDriver(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh);
+	 DUOStereoDriver(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh);
 	~DUOStereoDriver();
+public:
+
+	static DUOStereoDriver&	CreateInstance(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh)
+	{
+		if( pSingleton == 0L )
+			pSingleton = new DUOStereoDriver(priv_nh, camera_nh);
+
+		return *pSingleton;
+	}
+
+	static DUOStereoDriver&	GetInstance(void)
+	{
+		return *pSingleton;
+	}
+
+	static void	DestroyInstance(void)
+	{
+		if(pSingleton != 0L)
+		{
+			delete pSingleton;
+			pSingleton = NULL;
+		}
+	}
 
 	bool initializeDUO();
 	void shutdownDUO();
@@ -95,6 +116,7 @@ private:
 	// Create transform broadcaster to transform image into the camera mount frame? 
 	// Since the z axis is pointing into the image, but in the world z axis is up
 
+	static DUOStereoDriver* pSingleton;
 };
 
 }

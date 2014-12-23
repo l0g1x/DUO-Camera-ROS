@@ -1,5 +1,6 @@
 #include "driverDUOstereo.h"
 
+using namespace duoStereo_driver;
 
 int main(int argc, char **argv)
 {
@@ -9,7 +10,8 @@ int main(int argc, char **argv)
   	ros::NodeHandle priv_nh("~");
   	ros::NodeHandle camera_nh("duo3d_camera");
 
-  	duoStereo_driver::DUOStereoDriver duoDriver(priv_nh, camera_nh);
+  	DUOStereoDriver& duoDriver = DUOStereoDriver::CreateInstance
+  											(priv_nh, camera_nh);
 
   	if (duoDriver.initializeDUO())
   	{
@@ -21,8 +23,11 @@ int main(int argc, char **argv)
     }
     else
 	{
+
 		ROS_ERROR("Initialization failed. Exiting DUO Node.");
 	}
+
+	DUOStereoDriver::DestroyInstance();
 
 	return 0;
 }

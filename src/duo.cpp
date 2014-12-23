@@ -63,7 +63,7 @@ bool Initialize()
 
 
 
-    	// Select 320x240 resolution with 2x2 binning capturing at 10FPS
+    // Select 320x240 resolution with 2x2 binning capturing at 10FPS
 	// These values should be ROS Params
 	// As of right now, no binning since I dont know anything about binning (yet...)
 	//
@@ -153,12 +153,12 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 				pFrameData->width,	// step size 
 				pFrameData->leftData);	// left camera data pointer
 
-        sensor_msgs::fillImage( rightImage,
-                                sensor_msgs::image_encodings::MONO8,
-                                pFrameData->height,
-                                pFrameData->width,
-                                pFrameData->width,
-                                pFrameData->rightData);
+    sensor_msgs::fillImage( rightImage,
+                sensor_msgs::image_encodings::MONO8,
+                pFrameData->height,
+                pFrameData->width,
+                pFrameData->width,
+                pFrameData->rightData);
 
 	// Publish the sensor_msgs::Image message
 	//

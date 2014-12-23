@@ -5,16 +5,18 @@
 namespace duoStereo_driver
 {
 
+DUOStereoDriver* DUOStereoDriver::pSingleton(0L);
+
 const std::string DUOStereoDriver::CameraNames[TWO_CAMERAS] = {"left","right"};
 
 DUOStereoDriver::DUOStereoDriver(ros::NodeHandle priv_nh, 
 								ros::NodeHandle camera_nh):
-	_useDUO_Imu(false),
+	 _useDUO_Imu(false),
 	_useDUO_LEDs(false),
-	_priv_nh(priv_nh),
-	_camera_nh(camera_nh),
+	    _priv_nh(priv_nh),
+	  _camera_nh(camera_nh),
 	_camera_name("duo_camera"),
-	_it(new image_transport::ImageTransport(_camera_nh))
+	         _it(new image_transport::ImageTransport(_camera_nh))
 {
 	for(int i = 0; i < TWO_CAMERAS; i++)
 	{
@@ -33,7 +35,14 @@ DUOStereoDriver::~DUOStereoDriver()
 
 void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 {
-	
+	DUOStereoDriver& duoDriver = DUOStereoDriver::GetInstance();
+	// sensor_msgs::ImagePtr image[TWO_CAMERAS];
+
+ //    for (int i = 0; i<TWO_CAMERAS; i++)
+ //    {
+ //    	image[i] = sensor_msgs::ImagePtr(new sensor_msgs::Image);    	
+ //    }
+
 }
 
 bool DUOStereoDriver::initializeDUO()
