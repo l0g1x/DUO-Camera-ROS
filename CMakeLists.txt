@@ -51,7 +51,7 @@ catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
-add_executable(duo_node src/duo.cpp)
+add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
 
 # add_dependencies(duo3d_ros_node duo3d_ros_generate_messages_cpp)
 
