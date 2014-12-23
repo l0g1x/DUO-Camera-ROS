@@ -17,7 +17,8 @@ public:
 	DUOStereoDriver(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh);
 	~DUOStereoDriver();
 
-	bool InitializeDUO();
+	bool initializeDUO();
+	void shutdownDUO();
 
 private:
 
@@ -31,12 +32,18 @@ private:
 	static const std::string CameraNames[TWO_CAMERAS]; // = {"left","right"};
 
 	/*
+	 * @brief Refer to DUO API Docs for these two
+	 */
+	DUOInstance 		_duoInstance;
+	DUOResolutionInfo 	_duoResolutionInfo;
+
+	/*
 	 *	@brief DUO Device data we get during initialization
 	 */
-	// char 	_duoDeviceName[260];
-	// char 	_duoDeviceSerialNumber[260];
-	// char 	_duoDeviceFirmwareVersion[260];
-	// char 	_duoDeviceFirmwareBuild[260];
+	char 	_duoDeviceName[260];
+	char 	_duoDeviceSerialNumber[260];
+	char 	_duoDeviceFirmwareVersion[260];
+	char 	_duoDeviceFirmwareBuild[260];
 
 	/*
 	 *	@params for whether or not to use IMU and/or LED sequences

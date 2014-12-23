@@ -1,9 +1,5 @@
 #include "driverDUOstereo.h"
 
-void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
-{
-	
-}
 
 int main(int argc, char **argv)
 {
@@ -13,29 +9,20 @@ int main(int argc, char **argv)
   	ros::NodeHandle priv_nh("~");
   	ros::NodeHandle camera_nh("duo3d_camera");
 
-	/*
-	 * @brief Refer to DUO API Docs for these two
-	 */
-	DUOInstance 		_duoInstance;
-	DUOResolutionInfo 	_duoResolutionInfo;
-
   	duoStereo_driver::DUOStereoDriver duoDriver(priv_nh, camera_nh);
 
-  	if (duoDriver.InitializeDUO() == true)
+  	if (duoDriver.initializeDUO())
   	{
-   		StartDUO(_duoInstance, DUOCallback, NULL);
 	   	while(node.ok())
 	  	{
 	   		ros::spinOnce();
 	  	}
-	   	StopDUO(_duoInstance);
-		CloseDUO(_duoInstance);
+	  	duoDriver.shutdownDUO();
     }
     else
 	{
 		ROS_ERROR("Initialization failed. Exiting DUO Node.");
 	}
-
 
 	return 0;
 }

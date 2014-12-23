@@ -1,5 +1,5 @@
 <launch>
-    <node pkg="duo3d_ros" name="duo_node" type="duo_node" required="true">
+    <node pkg="duo3d_ros" name="duo_node" type="duo_node" required="true" output="screen">
 
 	<!-- Supported Device Names: [Mini, Mini-lx] -->
 	<param name="device_name" 		value="Mini-lx" />
