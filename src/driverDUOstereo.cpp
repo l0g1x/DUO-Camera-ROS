@@ -26,6 +26,11 @@ DUOStereoDriver::DUOStereoDriver(ros::NodeHandle priv_nh,
 	}
 }
 
+DUOStereoDriver::~DUOStereoDriver()
+{
+
+}
+
 bool DUOStereoDriver::InitializeDUO()
 {
 	// Implement libCheck() later to tell user they need to update their DUO SDK
@@ -35,15 +40,52 @@ bool DUOStereoDriver::InitializeDUO()
 	// launch file using <param> tag
 	//
 
-	std::string 	deviceName;
-	if(_priv_nh.getParam("device_name", deviceName))
-	{
-		ROS_INFO_STREAM("DUO Device: " << deviceName); 
-	}
-	else
-	{
-		ROS_FATAL("No Device Name! Please set the 'device_name' parameter.");
-	}
+	// std::string 	deviceName;
+	// if(_priv_nh.getParam("device_name", deviceName))
+	// {
+	// 	ROS_INFO_STREAM("DUO Device: " << deviceName); 
+	// }
+	// else
+	// {
+	// 	ROS_FATAL("No Device Name! Please set the 'device_name' parameter.");
+	// }
+
+
+    // Select 752x480 resolution with no binning capturing at 20FPS
+	// These values should be ROS Params
+	//
+	// if(EnumerateResolutions(&duoResolutionInfo, 1, 752, 480, DUO_BIN_NONE, 20))
+	// {
+	// 	if(OpenDUO(&duoInstance))
+	// 	{
+	// 		GetDUODeviceName(		duoInstance, duoDeviceName);
+	// 		GetDUOSerialNumber(		duoInstance, duoDeviceSerialNumber);
+	// 		GetDUOFirmwareVersion(	duoInstance, duoDeviceFirmwareVersion);
+	// 		GetDUOFirmwareBuild(	duoInstance, duoDeviceFirmwareBuild);
+	// 		SetDUOResolutionInfo( 	duoInstance, duoResolutionInfo);
+
+	// 		int exposure;
+	// 		int gain;
+	// 		int led_lighting;
+	// 		nLocal.param("exposure"		, exposure		, 50);
+	// 		nLocal.param("gain"			, gain 			, 50);
+	// 		nLocal.param("led_lighting"	, led_lighting	, 50);
+
+	// 		// These need to be roslaunch parameters. Will make dynamic reconfig 
+	// 		SetDUOExposure(duoInstance, exposure);
+	// 		SetDUOGain(duoInstance, gain);
+	// 		SetDUOLedPWM(duoInstance, led_lighting);
+
+	// 		return true;
+	// 	}
+	// 	else
+	// 	{
+	// 		ROS_FATAL("Cannot Open DUO. Please check connection!");
+	// 		return false;
+	// 	}
+	// }
+
+	return false;
 }
 
 } // end namespace duoStereo_driver

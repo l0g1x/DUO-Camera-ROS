@@ -1,3 +1,6 @@
+#ifndef DUOCamera_StereoDriver_h
+#define DUOCamera_StereoDriver_h
+
 #include <DUOLib.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
@@ -17,11 +20,6 @@ public:
 	bool InitializeDUO();
 
 private:
-
-	/*
-	 * @brief Refer to DUO API Docs for these two
-	 */
-
 
 	/*
 	 * @brief
@@ -92,6 +90,6 @@ private:
 
 };
 
-void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData);
-
 }
+
+#endif
