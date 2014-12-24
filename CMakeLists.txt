@@ -56,6 +56,7 @@ add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
 # add_dependencies(duo3d_ros_node duo3d_ros_generate_messages_cpp)
 
 target_link_libraries(duo_node ${catkin_LIBRARIES} )
+set_target_properties(duo_node PROPERTIES COMPILE_FLAGS -g)
 
 if(WIN32)
         target_link_libraries(duo_node DUOlib)

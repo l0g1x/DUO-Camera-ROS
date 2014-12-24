@@ -1,0 +1,26 @@
+<launch>
+    <node launch-prefix="valgrind --leak-check=full --track-origins=yes" pkg="duo3d_ros" name="duo_node" type="duo_node" required="true" output="screen">
+
+	<!-- Supported Device Names: [Mini, Mini-lx] -->
+	<param name="device_name" 		value="Mini-lx" />
+	<param name="device_serial_number" 	value="hello23" />
+
+    	<param name="frame_id"   value="duo3d_camera" />
+
+	<!-- 	Choose anywhere from 0.1-3000 Frames Per Second (FPS) for the DUO to publish at. Please only
+		use up to one decimal place ONLY, if you need to. This does not require a specific rate, like 
+		the duo_dense3d.launch file requires. -->	
+	<param name="FPS"   value="30" />
+
+	<param name="resolution_width"	value="752" />
+	<param name="resolution_height"	value="480" />
+
+	<param name="exposure"		value="40"  />
+	<param name="gain"		value="70"  /> 
+	<param name="led_lighting"	value="50"  />
+
+    	<param name="use_DUO_imu"   	value="true" />
+    	<param name="use_DUO_LEDs"   	value="true" />
+    </node>
+
+</launch>
