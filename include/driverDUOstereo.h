@@ -12,9 +12,15 @@ namespace duoStereo_driver
 
 class DUOStereoDriver
 {
-	 DUOStereoDriver(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh);
-	~DUOStereoDriver();
+
 public:
+
+	/*
+	 * @brief
+	 * This outside DUO API function ONLY, can access this DUOStereoDriver class 
+	 * private members. Be careful when using this. 
+	 */
+	friend void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData);
 
 	static DUOStereoDriver&	CreateInstance(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh)
 	{
@@ -41,7 +47,12 @@ public:
 	bool initializeDUO();
 	void shutdownDUO();
 
+	static const int TWO_CAMERAS = 2;
+
 private:
+
+	DUOStereoDriver(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh);
+	~DUOStereoDriver();
 
 	/*
 	 * @brief
@@ -49,7 +60,6 @@ private:
 	 * (e.g. 'left/duo3d_camera/')
 	 * (e.g. 'right/duo3d_camera/')
 	 */
-	static const int TWO_CAMERAS = 2;
 	static const std::string CameraNames[TWO_CAMERAS]; // = {"left","right"};
 
 	/*
@@ -84,13 +94,18 @@ private:
 	ros::NodeHandle _camera_nh;
 	ros::NodeHandle _single_camera_nh[TWO_CAMERAS];
 	std::string		_camera_name; 	// = "duo3d_camera";
+	std::string 	_camera_frame;
 
 	/*
 	 * @brief 
 	 * Pass ImagePtr array of size 2, containing both the left and right camera
 	 * images that we got from the DUOCallback function
 	 */
-	void publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERAS]);
+	void fillDUOImages(		sensor_msgs::Image& leftImage, 
+							sensor_msgs::Image& rightImage, 
+							const PDUOFrame pFrameData);
+	bool validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci);
+	void publishImages(		const sensor_msgs::ImagePtr image[TWO_CAMERAS]);
 
 	/*
 	 * @brief

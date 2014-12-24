@@ -33,17 +33,115 @@ DUOStereoDriver::~DUOStereoDriver()
 
 }
 
+
+void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::Image& rightImage, const PDUOFrame pFrameData)
+{
+	ros::Time timeNow 			= ros::Time::now();
+
+	leftImage.header.stamp 		= timeNow;
+	leftImage.header.frame_id 	= _camera_frame;
+	rightImage.header.stamp 	= timeNow;
+	rightImage.header.frame_id 	= _camera_frame;
+
+	// Fill the left image message, the step size needs to be the amount of pixels
+	// for the width of the image. fillImage() then allocates space in memory by making a
+	// size_t = step * height    , where height is the amount of columns in pixels
+	//
+	sensor_msgs::fillImage(	leftImage, 								// image reference
+							sensor_msgs::image_encodings::MONO8, 	// type of encoding
+							pFrameData->height, 					// columns in pixels 
+							pFrameData->width,						// rows in pixels
+							pFrameData->width,						// step size 
+							pFrameData->leftData);					// left camera data pointer
+
+    sensor_msgs::fillImage( rightImage,
+			                sensor_msgs::image_encodings::MONO8,
+			                pFrameData->height,
+			                pFrameData->width,
+			                pFrameData->width,
+			                pFrameData->rightData);
+}
+
+/*
+ * @brief 
+ * Checking if the camerainfo we received from camera_info_manager is the same as the image
+ * we are about to send.
+ */
+bool DUOStereoDriver::validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci)
+{
+	return (ci.width == image.width && ci.height == image.height);
+}
+
+/*
+ * @brief
+ */
+void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERAS])
+{
+
+    for (int i = 0; i < TWO_CAMERAS; i++)
+    {
+        // Get current CameraInfo data and populate ImagePtr Array
+        sensor_msgs::CameraInfoPtr
+          		ci(new sensor_msgs::CameraInfo(_cinfo[i]->getCameraInfo()));
+
+        // If camera info and image width and height dont match
+        // then set calibration_matches to false so we then 
+        // know if we should reset the camera info or not
+        if (!validateCameraInfo(*image[i], *ci)) 
+        {
+        	if(_calibrationMatches[i])
+        	{
+        		_calibrationMatches[i] = false; 
+        		ROS_WARN_STREAM("*" << _camera_name << "/" << CameraNames[i] << "* "
+        							<< "camera_info is different then calibration info. "
+        							<< "Uncalibrated image being sent.");
+        	}
+        	ci.reset(new sensor_msgs::CameraInfo());
+            ci->height = image[i]->height;
+            ci->width = image[i]->width;
+        }
+        else if (!_calibrationMatches[i])
+        {
+        	// Calibration is now okay
+        	_calibrationMatches[i] = true; 
+    		ROS_WARN_STREAM("*" << _camera_name << "/" << CameraNames[i] << "* "
+    							<< "is now publishing calibrated images. ");
+        }
+
+        ci->header.frame_id = image[i]->header.frame_id;
+        ci->header.stamp 	= image[i]->header.stamp;
+
+        _imagePub[i].publish(image[i], ci);
+    }
+
+    sensor_msgs::clearImage(*image[0]);
+	sensor_msgs::clearImage(*image[1]);
+}
+
+
 void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 {
-	DUOStereoDriver& duoDriver = DUOStereoDriver::GetInstance();
-	// sensor_msgs::ImagePtr image[TWO_CAMERAS];
 
- //    for (int i = 0; i<TWO_CAMERAS; i++)
- //    {
- //    	image[i] = sensor_msgs::ImagePtr(new sensor_msgs::Image);    	
- //    }
+	// Using singleton to access DUOStereoDriver 
+	// class member functions in this DUO C function
+	DUOStereoDriver& 		duoDriver 	= DUOStereoDriver::GetInstance(); 	
+
+	// Array to store left and right images
+	sensor_msgs::ImagePtr 	image[duoDriver.TWO_CAMERAS];	
+
+	// Initialize array of image pointers
+    for (int i = 0; i < duoDriver.TWO_CAMERAS; i++)
+    {
+    	image[i] = sensor_msgs::ImagePtr(new sensor_msgs::Image);    	
+    }
+
+    // Dereferencing individual images to fill with pFrameData from camera
+    // Then publish the images
+    duoDriver.fillDUOImages(*image[0], *image[1], pFrameData);
+    duoDriver.publishImages(image);
 
 }
+
 
 bool DUOStereoDriver::initializeDUO()
 {
@@ -84,10 +182,9 @@ bool DUOStereoDriver::initializeDUO()
 	}
 
 	/*
-	 * We will use this to populate the image's message header
+	 * We will use this to populate the image's message header.
 	 */
-	std::string 	cameraFrame;
-	_priv_nh.param<std::string>("frame_id", cameraFrame, "duo3d_camera");
+	_priv_nh.param<std::string>("frame_id", _camera_frame, "duo3d_camera");
 
 
 	/*
@@ -175,7 +272,6 @@ bool DUOStereoDriver::initializeDUO()
 
 	return false;
 }
-
 
 /*
  * @brief
