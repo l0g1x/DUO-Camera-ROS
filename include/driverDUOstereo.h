@@ -22,16 +22,11 @@ public:
 	 */
 	friend void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData);
 
-	static DUOStereoDriver&	CreateInstance(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh)
-	{
-		if( pSingleton == 0L )
-			pSingleton = new DUOStereoDriver(priv_nh, camera_nh);
-
-		return *pSingleton;
-	}
-
 	static DUOStereoDriver&	GetInstance(void)
 	{
+		if( pSingleton == 0L )
+			pSingleton = new DUOStereoDriver();
+
 		return *pSingleton;
 	}
 
@@ -39,20 +34,23 @@ public:
 	{
 		if(pSingleton != 0L)
 		{
+			pSingleton->shutdownDUO();
+
 			delete pSingleton;
 			pSingleton = NULL;
 		}
 	}
 
-	bool initializeDUO();
-	void shutdownDUO();
+	bool initializeDUO(void);
+	void startDUO(void);
+	void shutdownDUO(void);
 
 	static const int TWO_CAMERAS = 2;
 
 private:
 
-	DUOStereoDriver(ros::NodeHandle priv_nh, ros::NodeHandle camera_nh);
-	~DUOStereoDriver();
+	DUOStereoDriver(void);
+	~DUOStereoDriver(void);
 
 	/*
 	 * @brief

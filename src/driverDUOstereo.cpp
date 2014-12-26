@@ -9,12 +9,11 @@ DUOStereoDriver* DUOStereoDriver::pSingleton(0L);
 
 const std::string DUOStereoDriver::CameraNames[TWO_CAMERAS] = {"left","right"};
 
-DUOStereoDriver::DUOStereoDriver(ros::NodeHandle priv_nh, 
-								ros::NodeHandle camera_nh):
+DUOStereoDriver::DUOStereoDriver(void):
 	 _useDUO_Imu(false),
 	_useDUO_LEDs(false),
-	    _priv_nh(priv_nh),
-	  _camera_nh(camera_nh),
+	    _priv_nh("~"),
+	  _camera_nh("duo3d_camera"),
 	_camera_name("duo_camera"),
 	         _it(new image_transport::ImageTransport(_camera_nh))
 {
@@ -28,7 +27,7 @@ DUOStereoDriver::DUOStereoDriver(ros::NodeHandle priv_nh,
 	}
 }
 
-DUOStereoDriver::~DUOStereoDriver()
+DUOStereoDriver::~DUOStereoDriver(void)
 {
 
 }
@@ -250,6 +249,12 @@ bool DUOStereoDriver::initializeDUO()
 			SetDUOGain(_duoInstance, gain);
 			SetDUOLedPWM(_duoInstance, led_lighting);
 
+			// // If we could successfully open the DUO, then lets start it to finish
+			// // the initialization 
+			// ROS_INFO("Starting DUO...");
+			// StartDUO(_duoInstance, DUOCallback, NULL);
+			// ROS_INFO("DUO Started.");
+
 		}
 		else
 		{
@@ -257,11 +262,6 @@ bool DUOStereoDriver::initializeDUO()
 			return false;
 		}
 
-		// If we could successfully open the DUO, then lets start it to finish
-		// the initialization 
-		ROS_INFO("Starting DUO...");
-		StartDUO(_duoInstance, DUOCallback, NULL);
-		ROS_INFO("DUO Started.");
 		return true;
 	}
 	else
@@ -273,6 +273,16 @@ bool DUOStereoDriver::initializeDUO()
 	return false;
 }
 
+
+void DUOStereoDriver::startDUO()
+{
+	// If we could successfully open the DUO, then lets start it to finish
+	// the initialization 
+	ROS_INFO("Starting DUO...");
+	StartDUO(_duoInstance, DUOCallback, NULL);
+	ROS_INFO("DUO Started.");
+}
+
 /*
  * @brief
  * Using the DUO API function calls to properly end connection
@@ -281,7 +291,7 @@ bool DUOStereoDriver::initializeDUO()
  */
 void DUOStereoDriver::shutdownDUO()
 {
-	ROS_DEBUG("Shutting down DUO Camera.");
+	ROS_WARN("Shutting down DUO Camera.");
 	StopDUO(_duoInstance);
 	CloseDUO(_duoInstance);
 }
