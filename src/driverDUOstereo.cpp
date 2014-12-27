@@ -1,3 +1,11 @@
+////////////////////////////////////////////////////////////////////
+//
+//	A ROS driver for the DUO3D Camera.
+//	Author: Krystian Gebis
+//	File:	driverDUOstereo.cpp
+//
+////////////////////////////////////////////////////////////////////
+
 #include "driverDUOstereo.h"
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/fill_image.h>
@@ -9,12 +17,13 @@ DUOStereoDriver* DUOStereoDriver::pSingleton(0L);
 
 const std::string DUOStereoDriver::CameraNames[TWO_CAMERAS] = {"left","right"};
 
+
 DUOStereoDriver::DUOStereoDriver(void):
 	 _useDUO_Imu(false),
 	_useDUO_LEDs(false),
 	    _priv_nh("~"),
 	  _camera_nh("duo3d_camera"),
-	_camera_name("duo_camera"),
+	_camera_name("duo3d_camera"),
 	         _it(new image_transport::ImageTransport(_camera_nh))
 {
 	for(int i = 0; i < TWO_CAMERAS; i++)
@@ -26,6 +35,7 @@ DUOStereoDriver::DUOStereoDriver(void):
       	_imagePub[i] 			= _it->advertiseCamera(CameraNames[i]+"/image_raw", 1);
 	}
 }
+
 
 DUOStereoDriver::~DUOStereoDriver(void)
 {
@@ -61,19 +71,13 @@ void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::
 			                pFrameData->rightData);
 }
 
-/*
- * @brief 
- * Checking if the camerainfo we received from camera_info_manager is the same as the image
- * we are about to send.
- */
+
 bool DUOStereoDriver::validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci)
 {
 	return (ci.width == image.width && ci.height == image.height);
 }
 
-/*
- * @brief
- */
+
 void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERAS])
 {
 
@@ -136,7 +140,7 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 
     // Dereferencing individual images to fill with pFrameData from camera
     // Then publish the images
-    duoDriver.fillDUOImages(*image[0], *image[1], pFrameData);
+    duoDriver.fillDUOImages(*image[duoDriver.LEFT_CAM], *image[duoDriver.RIGHT_CAM], pFrameData);
     duoDriver.publishImages(image);
 
 }
@@ -283,12 +287,7 @@ void DUOStereoDriver::startDUO()
 	ROS_INFO("DUO Started.");
 }
 
-/*
- * @brief
- * Using the DUO API function calls to properly end connection
- * with DUO camera. This should ONLY be called, if the ros node 
- * receives a shutdown signal, or the node.ok() returns false.
- */
+
 void DUOStereoDriver::shutdownDUO()
 {
 	ROS_WARN("Shutting down DUO Camera.");
