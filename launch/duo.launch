@@ -3,7 +3,7 @@
 
 	<!-- Supported Device Names: [Mini, Mini-lx] -->
 	<param name="device_name" 		value="Mini-lx" />
-	<param name="device_serial_number" 	value="hello23" />
+	<param name="device_serial_number" 	value="N-A" />
 
     	<param name="frame_id"   value="duo3d_camera" />
 
@@ -15,12 +15,13 @@
 	<param name="resolution_width"	value="752" />
 	<param name="resolution_height"	value="480" />
 
-	<param name="exposure"		value="40"  />
-	<param name="gain"		value="70"  /> 
-	<param name="led_lighting"	value="50"  />
+	<param name="exposure"		value="100"  />
+	<param name="gain"		value="100"  /> 
+	<param name="led_lighting"	value="0"  />
 
-    	<param name="use_DUO_imu"   	value="true" />
-    	<param name="use_DUO_LEDs"   	value="true" />
+    <param name="use_DUO_imu"   	value="true" />
+    <param name="use_DUO_LEDs"   	value="true" />
     </node>
+
 
 </launch>

@@ -10,7 +10,6 @@
 #include "driverDUOstereo.h"
 #include <signal.h>
 
-
 using namespace duoStereo_driver;
 
 
@@ -56,6 +55,7 @@ int main(int argc, char **argv)
 	 */
   	signal(SIGINT, sigIntHandler);
 
+  	//duoDriver.setup();
 
   	/*
   	 *	@brief

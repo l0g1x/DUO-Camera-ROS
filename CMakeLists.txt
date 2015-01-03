@@ -47,13 +47,15 @@ elseif(UNIX)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
 endif()
 
-catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf )
+catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
 
 # add_dependencies(duo3d_ros_node duo3d_ros_generate_messages_cpp)
+
+# for linking duo_node to dynamic_reconfigure cfg files
 
 target_link_libraries(duo_node ${catkin_LIBRARIES} )
 set_target_properties(duo_node PROPERTIES COMPILE_FLAGS -g)

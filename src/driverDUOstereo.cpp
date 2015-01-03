@@ -23,7 +23,7 @@ DUOStereoDriver::DUOStereoDriver(void):
 	_useDUO_LEDs(false),
 	    _priv_nh("~"),
 	  _camera_nh("duo3d_camera"),
-	_camera_name("duo3d_camera"),
+	_camera_name("duo_camera"),
 	         _it(new image_transport::ImageTransport(_camera_nh))
 {
 	for(int i = 0; i < TWO_CAMERAS; i++)
@@ -100,8 +100,8 @@ void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERA
         							<< "Uncalibrated image being sent.");
         	}
         	ci.reset(new sensor_msgs::CameraInfo());
-            ci->height = image[i]->height;
-            ci->width = image[i]->width;
+            ci->height 	= image[i]->height;
+            ci->width 	= image[i]->width;
         }
         else if (!_calibrationMatches[i])
         {
@@ -140,7 +140,8 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
 
     // Dereferencing individual images to fill with pFrameData from camera
     // Then publish the images
-    duoDriver.fillDUOImages(*image[duoDriver.LEFT_CAM], *image[duoDriver.RIGHT_CAM], pFrameData);
+    //duoDriver.fillDUOImages(*image[duoDriver.LEFT_CAM], *image[duoDriver.RIGHT_CAM], pFrameData);
+    duoDriver.fillDUOImages(*image[1], *image[0], pFrameData);
     duoDriver.publishImages(image);
 
 }
@@ -224,7 +225,6 @@ bool DUOStereoDriver::initializeDUO()
 	_priv_nh.param<bool>("use_DUO_imu",  _useDUO_Imu,  false);
 	_priv_nh.param<bool>("use_DUO_LEDs", _useDUO_LEDs, false);
 
-
 	/*
 	 * @brief
 	 * Select 752x480 resolution with no binning capturing at 20FPS
@@ -233,6 +233,7 @@ bool DUOStereoDriver::initializeDUO()
 	if(EnumerateResolutions(&_duoResolutionInfo, 1, resWidth, resHeight, DUO_BIN_NONE, 20))
 	{
 		ROS_INFO("Resolution Parameters Check: PASSED");
+		
 		if(OpenDUO(&_duoInstance))
 		{
 			GetDUODeviceName(		_duoInstance, _duoDeviceName);
@@ -252,12 +253,7 @@ bool DUOStereoDriver::initializeDUO()
 			SetDUOExposure(_duoInstance, exposure);
 			SetDUOGain(_duoInstance, gain);
 			SetDUOLedPWM(_duoInstance, led_lighting);
-
-			// // If we could successfully open the DUO, then lets start it to finish
-			// // the initialization 
-			// ROS_INFO("Starting DUO...");
-			// StartDUO(_duoInstance, DUOCallback, NULL);
-			// ROS_INFO("DUO Started.");
+			SetDUOCameraSwap(_duoInstance, 1); // Switches left and right images
 
 		}
 		else
@@ -276,8 +272,37 @@ bool DUOStereoDriver::initializeDUO()
 
 	return false;
 }
+/*
+// this callback function is called whenever the dynamic_reconfigure server (this node)
+// recieves any new parameters to change. It basically changes the variables in this node
+// based on the dynamic_reconfigure parameters it recieves.
+void DUOStereoDriver::dynamicReconfigureCallback(duo3d_ros::DUO3DConfig &config, uint32_t level) 
+{
+  	ROS_DEBUG("Reconfigure Request: %d %d %d", 
+            	config.exposure, config.gain, 
+            	config.led_lighting);
 
+  	// if any parameters have changed, then let the DUO camera know and change them
+  	if(exposureDUO != config.exposure)
+    	SetDUOExposure(_duoInstance, exposureDUO);
+  	if(gainDUO != config.gain)
+    	SetDUOGain(_duoInstance, gainDUO);
+  	if(ledLightingDUO != config.led_lighting)
+    	SetDUOLedPWM(_duoInstance, ledLightingDUO);
 
+  	// store these new parameter values
+  	exposureDUO 	= config.exposure;
+  	gainDUO 		= config.gain;
+  	ledLightingDUO 	= config.led_lighting;
+
+}
+
+void DUOStereoDriver::setup(void)
+{
+	_f = boost::bind(&DUOStereoDriver::dynamicReconfigureCallback, this, _1, _2);
+	_dyParamSrv.setCallback(_f);
+}
+*/
 void DUOStereoDriver::startDUO()
 {
 	// If we could successfully open the DUO, then lets start it to finish

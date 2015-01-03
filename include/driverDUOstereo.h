@@ -15,6 +15,7 @@
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
 
+
 namespace duoStereo_driver
 {
 
@@ -76,7 +77,8 @@ public:
 	 *	startDUO():			Simply calls the DUO API StartDUO() function call.
 	 *	shutdownDUO():		Using the DUO API function calls to properly end connection
  	 * 						with DUO camera. This should ONLY be called, if the ros node 
- 	 * 						receives a shutdown signal.
+ 	 * 						receives a shutdown signal; so this is called in the 
+ 	 * 						DestroyInstance() if the pSingleton instance is not NULL.
 	 */
 	bool initializeDUO(void);
 	void startDUO(void);
@@ -103,15 +105,15 @@ private:
 	~DUOStereoDriver(void);
 
 	/*
-	 * @brief
-	 * Used for setting proper camera namespaces 
-	 * (e.g. 'left/duo3d_camera/')
-	 * (e.g. 'right/duo3d_camera/')
+	 * 	@brief
+	 * 	Used for setting proper camera namespaces 
+	 * 	(e.g. 'left/duo3d_camera/')
+	 * 	(e.g. 'right/duo3d_camera/')
 	 */
 	static const std::string CameraNames[TWO_CAMERAS]; // = {"left","right"};
 
 	/*
-	 * @brief Refer to DUO API Docs for these two
+	 *	@brief Refer to DUO API Docs for these two
 	 */
 	DUOInstance 		_duoInstance;
 	DUOResolutionInfo 	_duoResolutionInfo;
@@ -176,28 +178,30 @@ private:
 	void publishImages(		const sensor_msgs::ImagePtr image[TWO_CAMERAS]);
 
 	/*
-	 * @brief
-	 * Two instances of image transport publishers; Left and Right publishers
+	 * 	@brief
+	 * 	Two instances of image transport publishers; Left and Right publishers
 	 */
 	boost::shared_ptr<image_transport::ImageTransport> 	_it;
 	image_transport::CameraPublisher 					_imagePub[TWO_CAMERAS];      
 
 	/*
-	 * @brief
-	 * Create instance of CameraInfoManager for taking care of setting/getting
-	 * calibration related information for camera info message.
+	 * 	@brief
+	 * 	Create instance of CameraInfoManager for taking care of setting/getting
+	 * 	calibration related information for camera info message.
 	 */
 	boost::shared_ptr<camera_info_manager::CameraInfoManager> _cinfo[TWO_CAMERAS];
 
+
 	/* 
-	 * @brief
-	 * Check if the camera info matches the duo camera settings. If the camera settings
-	 * change, then a warning will pop up saying you must recalibrate the stereo camera. 
+	 * 	@brief
+	 * 	Check if the camera info matches the duo camera settings. If the camera settings
+	 * 	change, then a warning will pop up saying you must recalibrate the stereo camera. 
 	 */
 	bool _calibrationMatches[TWO_CAMERAS];	 
 
-	// Create transform broadcaster to transform image into the camera mount frame? 
-	// Since the z axis is pointing into the image, but in the world z axis is up
+	// 	Create transform broadcaster to transform image into the camera mount frame? 
+	// 	Since the z axis is pointing into the image, but in the world z axis is up
+
 
 	static DUOStereoDriver* pSingleton;
 };
