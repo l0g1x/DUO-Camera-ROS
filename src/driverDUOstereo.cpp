@@ -198,8 +198,8 @@ bool DUOStereoDriver::initializeDUO()
 	 * so we have to pass as double, and then cast to float to satisfy DUOResolutionInfo 
 	 * fps parameter requirement of type float
 	 */
-	int 	framesPerSecond;
-	_priv_nh.param("FPS", framesPerSecond, 30);
+	double	framesPerSecond;
+	_priv_nh.param("FPS", framesPerSecond, 30.0);
 
 
 	/* 

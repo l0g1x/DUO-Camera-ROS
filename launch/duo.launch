@@ -30,7 +30,7 @@
 	    <param name="use_DUO_imu"   	value="true" />
 	    <param name="use_DUO_LEDs"   	value="true" />
 
-	    <!-- NOTE: to set the calibration manually you need to have the "ost.txt" file from the ros calibration. then you convert (use http://wiki.ros.org/camera_calibration_parsers) it to two separate files and put it into the calibration folder -->
+	    <!-- NOTE: to set the calibration manually you'll need to have the "ost.txt" file from the ros calibration. then you convert (use http://wiki.ros.org/camera_calibration_parsers) it to two separate files and put it into the calibration folder -->
 
 	    <param name="camera_info_left" value="file://$(find duo3d_ros)/calibration/duo3d_left.yaml" />
 	    <param name="camera_info_right" value="file://$(find duo3d_ros)/calibration/duo3d_right.yaml" />
