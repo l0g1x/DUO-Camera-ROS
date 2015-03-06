@@ -1,26 +1,39 @@
 <launch>
     <node pkg="duo3d_ros" name="duo_node" type="duo_node" required="true" output="screen">
-
-	<!-- Supported Device Names: [Mini, Mini-lx] -->
-	<param name="device_name" 		value="Mini-lx" />
-	<param name="device_serial_number" 	value="N-A" />
+		<!-- Supported Device Names: [Mini, Mini-lx] -->
+		<param name="device_name" 		value="Mini-lx" />
+		<param name="device_serial_number" 	value="N-A" />
 
     	<param name="frame_id"   value="duo3d_camera" />
-
-	<!-- 	Choose anywhere from 0.1-3000 Frames Per Second (FPS) for the DUO to publish at. Please only
+		<!-- 	Choose anywhere from 0.1-3000 Frames Per Second (FPS) for the DUO to publish at. Please only
 		use up to one decimal place ONLY, if you need to. This does not require a specific rate, like 
-		the duo_dense3d.launch file requires. -->	
-	<param name="FPS"   value="30" />
+		the duo_dense3d.launch file requires. 
 
-	<param name="resolution_width"	value="752" />
-	<param name="resolution_height"	value="480" />
+		 56 FPS @ 752x480 ->  49
+		 62 FPS @ 640x480
+		123 FPS @ 640x240
+		240 FPS @ 640x120
+		 93 FPS @ 320x480
+		184 FPS @ 320x240 -> 171
+		360 FPS @ 320x120
 
-	<param name="exposure"		value="100"  />
-	<param name="gain"		value="100"  /> 
-	<param name="led_lighting"	value="0"  />
+		-->	
+		<param name="FPS"   value="35" />
 
-    <param name="use_DUO_imu"   	value="true" />
-    <param name="use_DUO_LEDs"   	value="true" />
+		<param name="resolution_width"	value="752" />
+		<param name="resolution_height"	value="480" />
+
+		<param name="exposure"		value="100"  />
+		<param name="gain"		value="20"  /> 
+		<param name="led_lighting"	value="100"  />
+
+	    <param name="use_DUO_imu"   	value="true" />
+	    <param name="use_DUO_LEDs"   	value="true" />
+
+	    <!-- NOTE: to set the calibration manually you need to have the "ost.txt" file from the ros calibration. then you convert (use http://wiki.ros.org/camera_calibration_parsers) it to two separate files and put it into the calibration folder -->
+
+	    <param name="camera_info_left" value="file://$(find duo3d_ros)/calibration/duo3d_left.yaml" />
+	    <param name="camera_info_right" value="file://$(find duo3d_ros)/calibration/duo3d_right.yaml" />
     </node>
 
 
