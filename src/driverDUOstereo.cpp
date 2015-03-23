@@ -45,11 +45,10 @@ DUOStereoDriver::~DUOStereoDriver(void)
 
 void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::Image& rightImage, const PDUOFrame pFrameData)
 {
-	ros::Time timeNow 			= ros::Time::now();
 
-	leftImage.header.stamp 		= timeNow;
+	leftImage.header.stamp 		= ros::Time( double(pFrameData->timeStamp) * 1.e-4);
 	leftImage.header.frame_id 	= _camera_frame;
-	rightImage.header.stamp 	= timeNow;
+	rightImage.header.stamp 	= leftImage.header.stamp;
 	rightImage.header.frame_id 	= _camera_frame;
 
 	// Fill the left image message, the step size needs to be the amount of pixels
