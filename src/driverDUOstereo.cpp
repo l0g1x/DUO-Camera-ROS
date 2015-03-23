@@ -198,7 +198,7 @@ bool DUOStereoDriver::initializeDUO()
 	 * so we have to pass as double, and then cast to float to satisfy DUOResolutionInfo 
 	 * fps parameter requirement of type float
 	 */
-	double 	framesPerSecond;
+	double	framesPerSecond;
 	_priv_nh.param("FPS", framesPerSecond, 30.0);
 
 
@@ -210,6 +210,16 @@ bool DUOStereoDriver::initializeDUO()
 	_priv_nh.param("resolution_width", 	resWidth, 752);
 	_priv_nh.param("resolution_height", resHeight, 480);
 
+
+	// Find optimal binning parameters for given (width, height)
+    // This maximizes sensor imaging area for given resolution
+    int binning = DUO_BIN_NONE;
+    if(resWidth <= 752/2) 
+        binning += DUO_BIN_HORIZONTAL2;
+    if(resHeight <= 480/4) 
+        binning += DUO_BIN_VERTICAL4;
+    else if(resHeight <= 480/2) 
+        binning += DUO_BIN_VERTICAL2;
 
 	/*
 	 * @brief
@@ -225,12 +235,32 @@ bool DUOStereoDriver::initializeDUO()
 	_priv_nh.param<bool>("use_DUO_imu",  _useDUO_Imu,  false);
 	_priv_nh.param<bool>("use_DUO_LEDs", _useDUO_LEDs, false);
 
+
+
+	// set camera_info_url using launch file
+	std::string camera_info_url_left, camera_info_url_right;
+	_priv_nh.param<std::string>("camera_info_left", camera_info_url_left, "");
+	_priv_nh.param<std::string>("camera_info_right", camera_info_url_right, "");
+
+	if( _cinfo[0]->validateURL( camera_info_url_left ) && _cinfo[1]->validateURL( camera_info_url_right ) )
+	{
+		_cinfo[0]->loadCameraInfo( camera_info_url_left );
+		_cinfo[1]->loadCameraInfo( camera_info_url_right );
+
+		ROS_INFO("custom DUO calibration files loaded");
+	}
+	else
+	{
+		ROS_ERROR("Calibration URL is invalid.");
+	}
+
+
 	/*
 	 * @brief
-	 * Select 752x480 resolution with no binning capturing at 20FPS
+	 * Select 752x480 resolution with no binning capturing at 30FPS
 	 * These values (width, height, FPS) should be ROS Params
 	 */
-	if(EnumerateResolutions(&_duoResolutionInfo, 1, resWidth, resHeight, DUO_BIN_NONE, 20))
+	if(EnumerateResolutions(&_duoResolutionInfo, 1, resWidth, resHeight, binning, framesPerSecond))
 	{
 		ROS_INFO("Resolution Parameters Check: PASSED");
 		
