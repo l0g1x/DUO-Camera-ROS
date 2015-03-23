@@ -22,14 +22,14 @@ using namespace duoStereo_driver;
  */
 void sigIntHandler(int sig)
 {
-	ROS_DEBUG("--> SIGINT Handler called <--");
+    ROS_DEBUG("--> SIGINT Handler called <--");
 
-	//Destory our pSingleton Instance that we created.
-	DUOStereoDriver::DestroyInstance();
+    //Destory our pSingleton Instance that we created.
+    DUOStereoDriver::DestroyInstance();
 
-	// Tell the ros node that we want to shutdown, so we receive a 
-	// clean exit
-  	ros::shutdown();
+    // Tell the ros node that we want to shutdown, so we receive a 
+    // clean exit
+    ros::shutdown();
 }
 
 
@@ -55,8 +55,6 @@ int main(int argc, char **argv)
 	 */
   	signal(SIGINT, sigIntHandler);
 
-  	//duoDriver.setup();
-
   	/*
   	 *	@brief
   	 *	First see if we can successfully initialize the DUO, then start the DUO
@@ -66,6 +64,7 @@ int main(int argc, char **argv)
   	 */
   	if (duoDriver.initializeDUO())
   	{
+      duoDriver.setup();
   		duoDriver.startDUO();
 
   		ros::spin();

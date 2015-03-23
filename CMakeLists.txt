@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   camera_info_manager
   image_transport
+  dynamic_reconfigure
 )
 
 find_package(Boost REQUIRED)
@@ -47,13 +48,18 @@ elseif(UNIX)
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin )
 endif()
 
+generate_dynamic_reconfigure_options(
+  cfg/Duo.cfg
+)
+
 catkin_package( CATKIN_DEPENDS geometry_msgs roscpp tf)
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
+
 add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
 
-# add_dependencies(duo3d_ros_node duo3d_ros_generate_messages_cpp)
+add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
 
 # for linking duo_node to dynamic_reconfigure cfg files
 

@@ -251,6 +251,7 @@ bool DUOStereoDriver::initializeDUO()
 	else
 	{
 		ROS_ERROR("Calibration URL is invalid.");
+		ROS_WARN("Will continue to publish uncalibrated images!");
 	}
 
 
@@ -271,17 +272,15 @@ bool DUOStereoDriver::initializeDUO()
 			GetDUOFirmwareBuild(	_duoInstance, _duoDeviceFirmwareBuild);
 			SetDUOResolutionInfo( 	_duoInstance, _duoResolutionInfo);
 
-			int exposure;
-			int gain;
-			int led_lighting;
-			_priv_nh.param("exposure"		, exposure		, 50);
-			_priv_nh.param("gain"			, gain 			, 50);
-			_priv_nh.param("led_lighting"	, led_lighting	, 50);
+
+			_priv_nh.param("exposure"		, _duoExposure	, 50.0);
+			_priv_nh.param("gain"			, _duoGain 		, 50.0);
+			_priv_nh.param("led_lighting"	, _duoLEDLevel	, 50.0);
 
 			// These need to be roslaunch parameters. Will make dynamic reconfig 
-			SetDUOExposure(_duoInstance, exposure);
-			SetDUOGain(_duoInstance, gain);
-			SetDUOLedPWM(_duoInstance, led_lighting);
+			SetDUOExposure(_duoInstance, _duoExposure);
+			SetDUOGain(_duoInstance, _duoGain);
+			SetDUOLedPWM(_duoInstance, _duoLEDLevel);
 			SetDUOCameraSwap(_duoInstance, 1); // Switches left and right images
 
 		}
@@ -301,37 +300,58 @@ bool DUOStereoDriver::initializeDUO()
 
 	return false;
 }
-/*
+
 // this callback function is called whenever the dynamic_reconfigure server (this node)
 // recieves any new parameters to change. It basically changes the variables in this node
 // based on the dynamic_reconfigure parameters it recieves.
-void DUOStereoDriver::dynamicReconfigureCallback(duo3d_ros::DUO3DConfig &config, uint32_t level) 
+void DUOStereoDriver::dynamicCallback(duo3d_ros::DuoConfig &config, uint32_t level) 
 {
-  	ROS_DEBUG("Reconfigure Request: %d %d %d", 
-            	config.exposure, config.gain, 
-            	config.led_lighting);
+  	//ROS_INFO("Reconfigure Request: %f %f %f", 
+    //        	config.exposure, config.gain, 
+    //        	config.LED);
 
   	// if any parameters have changed, then let the DUO camera know and change them
-  	if(exposureDUO != config.exposure)
-    	SetDUOExposure(_duoInstance, exposureDUO);
-  	if(gainDUO != config.gain)
-    	SetDUOGain(_duoInstance, gainDUO);
-  	if(ledLightingDUO != config.led_lighting)
-    	SetDUOLedPWM(_duoInstance, ledLightingDUO);
-
-  	// store these new parameter values
-  	exposureDUO 	= config.exposure;
-  	gainDUO 		= config.gain;
-  	ledLightingDUO 	= config.led_lighting;
+  	if(_duoExposure != config.exposure)
+  	{
+  		_duoExposure = config.exposure;
+    	SetDUOExposure(_duoInstance, _duoExposure);
+  	}
+  	if(_duoGain != config.gain)
+  	{
+  		_duoGain = config.gain;
+    	SetDUOGain(_duoInstance, _duoGain);
+  	}
+  	if(_duoLEDLevel != config.LED)
+  	{
+  		_duoLEDLevel = config.LED;
+    	SetDUOLedPWM(_duoInstance, _duoLEDLevel);
+  	}
+  	if(_duoCameraSwap != config.CameraSwap)
+  	{
+  		_duoCameraSwap = config.CameraSwap;
+  		SetDUOCameraSwap(_duoInstance, _duoCameraSwap);
+  	}
+  	if(_duoHorizontalFlip != config.HorizontalFlip)
+  	{
+  		_duoHorizontalFlip = config.HorizontalFlip;
+  		SetDUOHFlip(_duoInstance, _duoHorizontalFlip);
+  	}
+  	if(_duoVerticalFlip != config.VerticalFlip)
+  	{
+  		_duoVerticalFlip = config.VerticalFlip;
+  		SetDUOVFlip(_duoInstance, _duoVerticalFlip);
+  	}
 
 }
+
 
 void DUOStereoDriver::setup(void)
 {
-	_f = boost::bind(&DUOStereoDriver::dynamicReconfigureCallback, this, _1, _2);
-	_dyParamSrv.setCallback(_f);
+	_serverCbType = boost::bind(&DUOStereoDriver::dynamicCallback, this, _1, _2);
+	_dynamicServer.setCallback(_serverCbType);
 }
-*/
+
+
 void DUOStereoDriver::startDUO()
 {
 	// If we could successfully open the DUO, then lets start it to finish

@@ -15,6 +15,9 @@
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
 
+#include <dynamic_reconfigure/server.h>
+#include <duo3d_ros/DuoConfig.h>
+
 
 namespace duoStereo_driver
 {
@@ -83,6 +86,7 @@ public:
 	bool initializeDUO(void);
 	void startDUO(void);
 	void shutdownDUO(void);
+	void setup(void);
 
 	/*
 	 *	@brief
@@ -125,6 +129,13 @@ private:
 	char 	_duoDeviceSerialNumber[260];
 	char 	_duoDeviceFirmwareVersion[260];
 	char 	_duoDeviceFirmwareBuild[260];
+
+	double 	_duoExposure;
+	double	_duoGain;
+	double 	_duoLEDLevel;
+	int 	_duoCameraSwap;
+	int 	_duoHorizontalFlip;
+	int 	_duoVerticalFlip;
 
 	/*
 	 *	@params for whether or not to use IMU and/or LED sequences
@@ -201,6 +212,12 @@ private:
 
 	// 	Create transform broadcaster to transform image into the camera mount frame? 
 	// 	Since the z axis is pointing into the image, but in the world z axis is up
+
+	dynamic_reconfigure::Server<duo3d_ros::DuoConfig> 				_dynamicServer;
+	dynamic_reconfigure::Server<duo3d_ros::DuoConfig>::CallbackType _serverCbType;
+
+
+	void dynamicCallback(duo3d_ros::DuoConfig &config, uint32_t level);
 
 
 	static DUOStereoDriver* pSingleton;
