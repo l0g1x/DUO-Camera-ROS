@@ -9,12 +9,14 @@ find_package(catkin REQUIRED COMPONENTS
   camera_info_manager
   image_transport
   dynamic_reconfigure
+  pcl_ros
 )
 
 find_package(Boost REQUIRED)
+find_package(PCL REQUIRED)
 
 # Add DUO include and lib
-include_directories(${DUO_SDK}/include)
+include_directories(${DUO_SDK}/include ${PCL_INCLUDE_DIRS})
 
 # Detect Compiler / Arch and add libraries
 if(MSVC)
@@ -58,6 +60,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 
 add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
+add_executable(dense3d src/duo_dense3d.cpp)
 
 add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
 
@@ -65,11 +68,15 @@ add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
 
 target_link_libraries(duo_node ${catkin_LIBRARIES} )
 set_target_properties(duo_node PROPERTIES COMPILE_FLAGS -g)
+target_link_libraries(dense3d ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+set_target_properties(dense3d PROPERTIES COMPILE_FLAGS -g)
 
 if(WIN32)
         target_link_libraries(duo_node DUOlib)
+        target_link_libraries(dense3d DUOlib)
 elseif(UNIX OR APPLE)
-        target_link_libraries(duo_node duo)
+	target_link_libraries(duo_node duo)
+        target_link_libraries(dense3d duo)
 endif()
 
 #############

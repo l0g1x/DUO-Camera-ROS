@@ -5,7 +5,7 @@
 //	File:	driverDUOstereo.cpp
 //
 ////////////////////////////////////////////////////////////////////
-
+ 
 #ifndef DUOCamera_StereoDriver_h
 #define DUOCamera_StereoDriver_h
 
