@@ -1,6 +1,8 @@
 DUO-Camera-ROS
 ==============
 
+[![Join the chat at https://gitter.im/l0g1x/DUO-Camera-ROS](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/l0g1x/DUO-Camera-ROS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 This package is a ROS stereo camera driver for DUO cameras. 
 
 The package can act as either a regular camera driver outputing a left and right camera image, or it can act purely as a stereo camera, outputing a disparity image, and a PointCloud2. The user is not limited to one or the other, both left/right camera images can be provided at the same time as disparity and PointCloud2. 
