@@ -46,7 +46,7 @@ DUOStereoDriver::~DUOStereoDriver(void)
 void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::Image& rightImage, const PDUOFrame pFrameData)
 {
 
-	leftImage.header.stamp 		= ros::Time( double(pFrameData->timeStamp) * 1.e-4);
+	leftImage.header.stamp 		= ros::Time::now();
 	leftImage.header.frame_id 	= _camera_frame;
 	rightImage.header.stamp 	= leftImage.header.stamp;
 	rightImage.header.frame_id 	= _camera_frame;
