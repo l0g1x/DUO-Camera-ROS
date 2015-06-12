@@ -99,6 +99,7 @@ public:
 
 private:
 
+	int _startTime;
 	/*
 	 *	@brief
 	 *	Constructor and Destructor are made private so that you can only get one instance

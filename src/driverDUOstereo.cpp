@@ -19,6 +19,7 @@ const std::string DUOStereoDriver::CameraNames[TWO_CAMERAS] = {"left","right"};
 
 
 DUOStereoDriver::DUOStereoDriver(void):
+    _startTime(0),
 	 _useDUO_Imu(false),
 	_useDUO_LEDs(false),
 	    _priv_nh("~"),
@@ -46,7 +47,7 @@ DUOStereoDriver::~DUOStereoDriver(void)
 void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::Image& rightImage, const PDUOFrame pFrameData)
 {
 
-	leftImage.header.stamp 		= ros::Time( double(pFrameData->timeStamp) * 1.e-4);
+	leftImage.header.stamp 		= ros::Time( double(pFrameData->timeStamp) * 1.e-4 + _startTime);
 	leftImage.header.frame_id 	= _camera_frame;
 	rightImage.header.stamp 	= leftImage.header.stamp;
 	rightImage.header.frame_id 	= _camera_frame;
@@ -358,6 +359,7 @@ void DUOStereoDriver::startDUO()
 	// the initialization 
 	ROS_INFO("Starting DUO...");
 	StartDUO(_duoInstance, DUOCallback, NULL);
+    _startTime = ros::Time::now().toSec();
 	ROS_INFO("DUO Started.");
 }
 
