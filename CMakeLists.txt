@@ -69,7 +69,7 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 include_directories(${DUO_INCLUDE_DIR})
 
 
-add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
+add_executable(duo_node src/duo.cpp src/main.cpp)
 add_executable(dense3d src/duo_dense3d.cpp)
 
 add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
