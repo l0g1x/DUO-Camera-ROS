@@ -1,0 +1,40 @@
+#!/usr/bin/env python
+
+import os
+import shutil
+import logging
+import sys
+
+logging.basicConfig(level=logging.INFO)
+
+url = 'https://duo3d.com/get/lin/all'
+
+option_chosen = False
+
+duo_sdk_path = library_dest = sys.argv[0]
+
+while (not option_chosen):
+	logging.info("Please choose an option:")
+	logging.info("[1] - Download DUO_SDK")
+	logging.info("[2] - Specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
+	var = raw_input("")
+	
+	if (var == '1'):
+		logging.info("Downloading DUO SDK.")
+		# need to do this
+		option_chosen = True
+	elif (var == '2'):
+		path = raw_input("Enter path: ")
+		logging.info("Path Given: " + path)
+		option_chosen = True
+		
+		os.environ['DUO_SDK'] = path
+
+		#for filename in os.listdir(path):
+		#	shutil.copyfile(os.path.join(path, filename), 
+		#			os.path.join(duo_sdk_path, filename))		
+
+	else:
+		logging.info("You can only choose 1 or 2!")	
+	
+
