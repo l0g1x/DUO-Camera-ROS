@@ -4,37 +4,74 @@ import os
 import shutil
 import logging
 import sys
+import cookielib
+import urllib
+import urllib2
+import zipfile
+import StringIO
+import requests
+from requests.auth import HTTPBasicAuth
 
 logging.basicConfig(level=logging.INFO)
 
-url = 'https://duo3d.com/get/lin/all'
+login_url = 'https://duo3d.com/account'
+sdk_url = 'https://duo3d.com/get/lin/all'
 
-option_chosen = False
+#option_chosen = False
 
-duo_sdk_path = library_dest = sys.argv[0]
+#duo_sdk_path = library_dest = sys.argv[0]
 
-while (not option_chosen):
-	logging.info("Please choose an option:")
-	logging.info("[1] - Download DUO_SDK")
-	logging.info("[2] - Specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
-	var = raw_input("")
+logging.info(" Please specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
+path = raw_input(" Enter path: ")
+logging.info(" Path Given: " + path)
+os.environ['DUO_SDK'] = path
+
+# while (not option_chosen):
+# 	logging.info("Please choose an option:")
+# 	logging.info("[1] - Download DUO_SDK")
+# 	logging.info("[2] - Specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
+# 	var = raw_input("")
 	
-	if (var == '1'):
-		logging.info("Downloading DUO SDK.")
-		# need to do this
-		option_chosen = True
-	elif (var == '2'):
-		path = raw_input("Enter path: ")
-		logging.info("Path Given: " + path)
-		option_chosen = True
+	# if (var == '1'):
+	# 	# need to do this
+	# 	option_chosen = True
+	# 	username = raw_input("DUO Username: ")
+	# 	password = raw_input("DUO Password: ")
+
+	# 	s = requests.Session()
+	# 	s.auth = (username, password)
+	# 	r = s.get('https://duo3d.com/get/lin/all', verify=False)
+	# 	print 'authenticated'
+	# 	print str(r.content)
+	# 	z = zipfile.ZipFile(StringIO.StringIO(r.content))
+	# 	z.extractall()
+
+	# 	#r = requests.get('https://duo3d.com/get/lin/all', auth=(username, password))
+	# 	#print 'done'	
+	# #	print r.read()
+
+	# 	#cj = cookielib.CookieJar()
+	# 	#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
+	# 	#opener.addheaders = [('User-agent', 'Mozilla/5.0'),
+	# 	#    			('Referer', 'https://www.duo3d.com')]
+	# 	#opener.open(login_url, urllib.urlencode(data))
+	# 	#
+	# 	#logging.info("Downloading SDK.")
+	# 	#resp = opener.open(sdk_url)	
+	# 	#print os.getcwd()
+	# 	#print StringIO.StringIO(resp.read())
+
+	# 	#with zipfile.ZipFile(StringIO.StringIO(resp.read()), "r") as z:
+	# 	#	z.extractall("./TEST/")
+
+	# elif (var == '2'):
+	# 	path = raw_input("Enter path: ")
+	# 	logging.info("Path Given: " + path)
+	# 	option_chosen = True
 		
-		os.environ['DUO_SDK'] = path
+	# 	os.environ['DUO_SDK'] = path		
 
-		#for filename in os.listdir(path):
-		#	shutil.copyfile(os.path.join(path, filename), 
-		#			os.path.join(duo_sdk_path, filename))		
-
-	else:
-		logging.info("You can only choose 1 or 2!")	
+	# else:
+	# 	logging.info("You can only choose 1 or 2!")	
 	
 

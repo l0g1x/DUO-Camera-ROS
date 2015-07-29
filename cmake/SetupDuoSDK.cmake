@@ -1,9 +1,6 @@
-function(setup_duo DUO_SDK_VAR)
-  set(DUO_SDK_PATH "${CATKIN_DEVEL_PREFIX}/${CATKIN_PACKAGE_LIB_DESTINATION}/DUO_SDK/")
+function(setup_duo)
   set(SETUP_SCRIPT "${PROJECT_SOURCE_DIR}/cmake/setup_duo")
   execute_process(
-    COMMAND ${SETUP_SCRIPT} ${DUO_SDK_PATH}
+    COMMAND ${SETUP_SCRIPT}
     WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
-
-  set(${DUO_SDK_VAR} ${DUO_SDK_PATH} PARENT_SCOPE)
 endfunction()
