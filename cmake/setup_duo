@@ -18,8 +18,8 @@ sdk_url = 'https://duo3d.com/download_file/DUO3D-LIN-ALL-v1.0.25.180'
 
 #option_chosen = False
 
-#duo_sdk_path = library_dest = sys.argv[1]
-duo_sdk_path = '/home/krystian/github/duo/devel/DUOSDK'
+duo_sdk_path = library_dest = sys.argv[1]
+#duo_sdk_path = '/home/krystian/github/duo/devel/DUOSDK'
 #path = raw_input(" Enter path: ")
 #logging.info(" Path Given: " + path)
 #os.environ['DUO_SDK'] = path
@@ -35,12 +35,12 @@ duo_sdk_path = '/home/krystian/github/duo/devel/DUOSDK'
 	
 logging.info(" --------------------------")
 logging.info(" Downloading SDK...")
-#r = requests.get(sdk_url, verify=False)
+r = requests.get(sdk_url, verify=False)
 
 logging.info(os.getcwd())
 
-#zf = zipfile.ZipFile(StringIO.StringIO(r.content))
-zf = zipfile.ZipFile('CL-DUO3D-LIN-1.0.25.180.zip')
+zf = zipfile.ZipFile(StringIO.StringIO(r.content))
+#zf = zipfile.ZipFile('CL-DUO3D-LIN-1.0.25.180.zip')
 zf.extractall('temp')
 
 tempPath = os.path.join(os.getcwd(), 'temp')
@@ -58,12 +58,17 @@ for sdkFolder in os.listdir(tempPath):
 		logging.info(" Temp path: " + tempPath)
 
 		if os.path.isdir(duo_sdk_path):
-			logging.info("Removing old DUOSDK folder")
+			logging.info(" Removing old DUOSDK folder")
 			shutil.rmtree(duo_sdk_path)
 
 		shutil.move(tempPath,
  				duo_sdk_path)
 
+		shutil.rmtree(os.path.join(os.getcwd(), 'temp'))
+
+
+logging.info("PLEASE ADD THE FOLLOWING TO YOUR .bashrc:")
+logging.info("export DUO_SDK=" + duo_sdk_path)
 
 	# for name in zf.namelist():
 	# 	temp = os.path.join(os.getcwd(), name)
