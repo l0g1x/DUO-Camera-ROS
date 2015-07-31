@@ -14,64 +14,106 @@ from requests.auth import HTTPBasicAuth
 
 logging.basicConfig(level=logging.INFO)
 
-login_url = 'https://duo3d.com/account'
-sdk_url = 'https://duo3d.com/get/lin/all'
+sdk_url = 'https://duo3d.com/download_file/DUO3D-LIN-ALL-v1.0.25.180'
 
 #option_chosen = False
 
-#duo_sdk_path = library_dest = sys.argv[0]
+#duo_sdk_path = library_dest = sys.argv[1]
+duo_sdk_path = '/home/krystian/github/duo/devel/DUOSDK'
+#path = raw_input(" Enter path: ")
+#logging.info(" Path Given: " + path)
+#os.environ['DUO_SDK'] = path
 
-logging.info(" Please specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
-path = raw_input(" Enter path: ")
-logging.info(" Path Given: " + path)
-os.environ['DUO_SDK'] = path
 
-# while (not option_chosen):
-# 	logging.info("Please choose an option:")
-# 	logging.info("[1] - Download DUO_SDK")
-# 	logging.info("[2] - Specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
-# 	var = raw_input("")
+#while (not option_chosen):
+	#logging.info(" --------------------------")
+	# logging.info(" Available options:")
+	# logging.info(" [1] - Download DUO_SDK")
+	# logging.info(" [2] - Specify full path (i.e home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
+	# logging.info(" Enter option:")
+	#var = raw_input()
 	
-	# if (var == '1'):
-	# 	# need to do this
-	# 	option_chosen = True
-	# 	username = raw_input("DUO Username: ")
-	# 	password = raw_input("DUO Password: ")
+logging.info(" --------------------------")
+logging.info(" Downloading SDK...")
+#r = requests.get(sdk_url, verify=False)
 
-	# 	s = requests.Session()
-	# 	s.auth = (username, password)
-	# 	r = s.get('https://duo3d.com/get/lin/all', verify=False)
-	# 	print 'authenticated'
-	# 	print str(r.content)
-	# 	z = zipfile.ZipFile(StringIO.StringIO(r.content))
-	# 	z.extractall()
+logging.info(os.getcwd())
 
-	# 	#r = requests.get('https://duo3d.com/get/lin/all', auth=(username, password))
-	# 	#print 'done'	
-	# #	print r.read()
+#zf = zipfile.ZipFile(StringIO.StringIO(r.content))
+zf = zipfile.ZipFile('CL-DUO3D-LIN-1.0.25.180.zip')
+zf.extractall('temp')
 
-	# 	#cj = cookielib.CookieJar()
-	# 	#opener = urllib2.build_opener(urllib2.HTTPCookieProcessor(cj))
-	# 	#opener.addheaders = [('User-agent', 'Mozilla/5.0'),
-	# 	#    			('Referer', 'https://www.duo3d.com')]
-	# 	#opener.open(login_url, urllib.urlencode(data))
-	# 	#
-	# 	#logging.info("Downloading SDK.")
-	# 	#resp = opener.open(sdk_url)	
-	# 	#print os.getcwd()
-	# 	#print StringIO.StringIO(resp.read())
+tempPath = os.path.join(os.getcwd(), 'temp')
 
-	# 	#with zipfile.ZipFile(StringIO.StringIO(resp.read()), "r") as z:
-	# 	#	z.extractall("./TEST/")
+# should only be 1 folder, but check regardless
+for folder in os.listdir(tempPath):
+	tempPath = os.path.join(tempPath, folder)
 
-	# elif (var == '2'):
-	# 	path = raw_input("Enter path: ")
-	# 	logging.info("Path Given: " + path)
-	# 	option_chosen = True
-		
-	# 	os.environ['DUO_SDK'] = path		
+logging.info(" Temp path: " + tempPath)
 
-	# else:
-	# 	logging.info("You can only choose 1 or 2!")	
+for sdkFolder in os.listdir(tempPath):
+	if sdkFolder == 'DUOSDK':
+		logging.info(" Found folder: " + sdkFolder)
+		tempPath = os.path.join(tempPath, sdkFolder, 'SDK')
+		logging.info(" Temp path: " + tempPath)
+
+		if os.path.isdir(duo_sdk_path):
+			logging.info("Removing old DUOSDK folder")
+			shutil.rmtree(duo_sdk_path)
+
+		shutil.move(tempPath,
+ 				duo_sdk_path)
+
+
+	# for name in zf.namelist():
+	# 	temp = os.path.join(os.getcwd(), name)
+	# 	path = os.path.dirname(temp)
+	# 	#print path
+	# 	#print os.path.dirname(path)
+	# #if os.path.isdir(path):
+	# 	if path.split('/')[-1] == 'DUOSDK':
+	# 		#print name
+	# 		logging.info(" Extracting SDK zip file...")
+
+	# 		tempPath = os.path.join(os.getcwd(), 'temp')
+	# 		if os.path.isdir(tempPath):
+	# 			shutil.rmtree(tempPath)
+	# 			os.mkdir(tempPath)
+	# 		else:
+	# 			os.mkdir(tempPath)
+
+	# 		localFilePath = zf.extract(name, tempPath)
+
+	# 		logging.info(os.listdir(tempPath))
+	# 		for filename in os.listdir(tempPath):
+	# 			logging.info(" " + filename)
+	# 			# remove SDK folder incase its a older version
+	# 			# if os.path.isdir(os.path.join(duo_sdk_path, 'DUOSDK')):
+	# 			# 	shutil.rmtree(os.path.join(duo_sdk_path, 'DUOSDK'))
+	# 			logging.info(os.path.join(tempPath, name))
+
+	# 			shutil.move(os.path.join(tempPath, name),
+	# 				duo_sdk_path)
+
+	# 		#shutil.move(localFilePath, duo_sdk_path)
+	# 		#os.rmdir(localFilePath)
+	# 		break
+
+#zipName = sdk_url.split('/')[-1]
+#logging.info(" " + zipName)
+
+#z.extractall("DUO_SDK/")
+
+# logging.info(" Moving SDK to workspace devel/ folder...")
+
+# for filename in os.listdir(os.path.join(os.getcwd(), zipName)):
+# 	shutil.move(os.path.join(os.getcwd(), zipName, filename), 
+#                 os.path.join(duo_sdk_path, filename))
+# os.rmdir(zipName)
+
+logging.info(" Done.")
+logging.info(" -------------------------- \n")
+
+
+#os.environ['DUO_SDK'] = path		
 	
-
