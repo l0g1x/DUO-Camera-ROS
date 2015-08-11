@@ -44,7 +44,7 @@ int main(int argc, char **argv)
   	 * 	one instance of the DUOStereoDriver class, and then can normally call public
   	 *	member functions later.
   	 */
-  	DUODense3DDriver& duoDriver = DUODense3DDriver::GetInstance();
+  	DUODense3DDriver& dense3dDriver = DUODense3DDriver::GetInstance();
 
 
 	/*
@@ -62,10 +62,10 @@ int main(int argc, char **argv)
   	 *	is called so that the NodeHandle publishers have a chance to be invoked
   	 * 	and send the images to their topics.
   	 */
-  	if (duoDriver.initializeDUO())
+  	if (dense3dDriver.initializeDense3D())
   	{
-      duoDriver.setup();
-  		duoDriver.startDUO();
+  		dense3dDriver.setup();
+  		dense3dDriver.startDense3D();
 
   		ros::spin();
     }

@@ -10,17 +10,43 @@
 #define DUOCamera_StereoDriver_h
 
 #include <DUOLib.h>
+#include <Dense3D.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/Imu.h>
+#include <std_msgs/Float32.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
+#include <tf/transform_broadcaster.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <duo3d_ros/DuoConfig.h>
 
+#include <string>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
 
 namespace duoStereo_driver
 {
+
+
+typedef struct
+{
+	unsigned short w, h;
+	double left[12];
+	double right[12];
+}INTRINSICS;
+
+typedef struct
+{
+	double rotation[9];
+	double translation[3];
+}EXTRINSICS;
 
 class DUOStereoDriver
 {
@@ -88,6 +114,10 @@ public:
 	void shutdownDUO(void);
 	void setup(void);
 
+	bool useImuData();
+	bool useDepthData();
+
+
 	/*
 	 *	@brief
 	 *	Used in the DUOCallback function for determine which image array index
@@ -121,6 +151,7 @@ private:
 	 */
 	DUOInstance 		_duoInstance;
 	DUOResolutionInfo 	_duoResolutionInfo;
+	bool	_duoInitialized;
 
 	/*
 	 *	@brief DUO Device data we get during initialization
@@ -130,6 +161,7 @@ private:
 	char 	_duoDeviceFirmwareVersion[260];
 	char 	_duoDeviceFirmwareBuild[260];
 
+
 	double 	_duoExposure;
 	double	_duoGain;
 	double 	_duoLEDLevel;
@@ -137,12 +169,26 @@ private:
 	int 	_duoHorizontalFlip;
 	int 	_duoVerticalFlip;
 
+	Dense3DInstance		_dense3dInstance;
+
 	/*
 	 *	@params for whether or not to use IMU and/or LED sequences
 	 */
 	bool 	_useDUO_Imu;
 	bool	_useDUO_LEDs;
 
+	bool	_publishDepth;
+	std::string	_duoDense3dLicense;
+
+	// depth3d params
+	int _speckleWindowSize;  	// 0 - 256
+	int _speckleRange;			// 0 - 16
+	int _uniquenessRatio;		// 0 - 100
+	int _preFilterCap;			// 0 - 256
+	int _p1;					// 0 - 3200
+	int _p2;					// 0 - 3200
+	int _sadWindowSize;		// 2 - 10
+	int _numDisparities;		// 2 - 16
 
 	/*
 	 * 	@priv_nh: 		used for grabbing params for launch files configs
@@ -160,6 +206,8 @@ private:
 	std::string		_camera_name; 	// = "duo3d_camera";
 	std::string 	_camera_frame;
 
+	int 	resWidth;
+	int 	resHeight;
 
 	/*
 	* 	@brief 
@@ -168,6 +216,9 @@ private:
 	void fillDUOImages(		sensor_msgs::Image& leftImage, 
 							sensor_msgs::Image& rightImage, 
 							const PDUOFrame pFrameData);
+
+	void fillIMUData(sensor_msgs::Imu& imuData, std_msgs::Float32& tempData, const PDUOFrame pFrameData);
+	void fillDepthData(Mat3f depthMat,  Mat1f dispMat, sensor_msgs::PointCloud2Ptr depthData, const PDUOFrame pFrameData);
 
 	/*
  	 * 	@brief 
@@ -187,6 +238,14 @@ private:
 	 *	function.
 	 */
 	void publishImages(		const sensor_msgs::ImagePtr image[TWO_CAMERAS]);
+	void publishDepthData (const sensor_msgs::PointCloud2Ptr depthData);
+	void publishIMUData (const sensor_msgs::ImuPtr imuData, const std_msgs::Float32Ptr tempData);
+
+	void startDense3D(void);
+	void shutdownDense3D(void);
+	bool initializeDense3D(void);
+
+	Mat3f getDepthData(const PDUOFrame pFrameData, Mat1f disparity);
 
 	/*
 	 * 	@brief
@@ -202,6 +261,16 @@ private:
 	 */
 	boost::shared_ptr<camera_info_manager::CameraInfoManager> _cinfo[TWO_CAMERAS];
 
+
+	ros::Publisher imuPub;
+	ros::Publisher tempPub;
+	ros::Publisher depthPub;
+
+	tf::TransformBroadcaster br;
+
+	Mat colorLut;
+
+	Vec3b HSV2RGB(float hue, float sat, float val);
 
 	/* 
 	 * 	@brief

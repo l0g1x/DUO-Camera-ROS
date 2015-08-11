@@ -10,13 +10,15 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   dynamic_reconfigure
   pcl_ros
+  cv_bridge
 )
 
 find_package(Boost REQUIRED)
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
 
 # Add DUO include and lib
-set(DUO_SDK /home/lbarnett/development/duo3d/DUO3D-SDK-v0.5.7.22/SDK)
+set(DUO_SDK /home/lbarnett/development/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK)
 include_directories(${DUO_SDK}/include ${PCL_INCLUDE_DIRS})
 
 # Detect Compiler / Arch and add libraries
@@ -61,7 +63,7 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 
 add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
-add_executable(duodense3d_node src/driverDUODense3D.cpp src/dense3d_node.cpp)
+add_executable(duodense3d_node src/driverDUODense3D.cpp src/driverDUOstereo.cpp src/dense3d_node.cpp)
 add_executable(dense3d src/duo_dense3d.cpp)
 
 add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
@@ -80,9 +82,9 @@ if(WIN32)
         target_link_libraries(dense3d DUOlib)
         target_link_libraries(duodense3d_node DUOlib)
 elseif(UNIX OR APPLE)
-	target_link_libraries(duo_node duo)
-        target_link_libraries(dense3d duo)        
-        target_link_libraries(duodense3d_node duo)        
+	target_link_libraries(duo_node DUO Dense3D)
+        target_link_libraries(dense3d DUO Dense3D)        
+        target_link_libraries(duodense3d_node DUO Dense3D)        
 endif()
 
 #############

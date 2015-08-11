@@ -64,7 +64,7 @@ int main(int argc, char **argv)
   	 */
   	if (duoDriver.initializeDUO())
   	{
-      duoDriver.setup();
+  		duoDriver.setup();
   		duoDriver.startDUO();
 
   		ros::spin();
