@@ -7,7 +7,7 @@
 ////////////////////////////////////////////////////////////////////
 
 
-#include "driverDUOstereo.h"
+#include "duo.h"
 #include <signal.h>
 
 using namespace duoStereo_driver;
@@ -44,6 +44,14 @@ int main(int argc, char **argv)
   	 * 	one instance of the DUOStereoDriver class, and then can normally call public
   	 *	member functions later.
   	 */
+/*    if (ros::param::has("~Dense3D"))
+    {
+      ROS_INFO("Using Dense3D");
+    }
+    else
+    {
+      DUOStereoDriver& duoDriver = DUOStereoDriver::GetInstance();
+    }*/
   	DUOStereoDriver& duoDriver = DUOStereoDriver::GetInstance();
 
 
@@ -62,15 +70,15 @@ int main(int argc, char **argv)
   	 *	is called so that the NodeHandle publishers have a chance to be invoked
   	 * 	and send the images to their topics.
   	 */
-  	if (duoDriver.initializeDUO())
-  	{
-      duoDriver.setup();
-  		duoDriver.startDUO();
+   	if (duoDriver.initializeDUO())
+   	{
+		duoDriver.setup();
+   		duoDriver.startDUO();
 
-  		ros::spin();
-    }
-    else
-	{
+   		ros::spin();
+	}
+     	else
+     	{
 
 		ROS_ERROR("Initialization failed. Exiting DUO Node.");
 	}
