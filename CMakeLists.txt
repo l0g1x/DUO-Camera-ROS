@@ -71,8 +71,8 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 include_directories(${DUO_INCLUDE_DIR})
 
 
-add_executable(duo_node src/duo.cpp src/main.cpp)
-add_executable(dense3d src/duo_dense3d.cpp)
+add_executable(duo_node src/duo.cpp src/main.cpp src/dense3d.cpp)
+#add_executable(dense3d src/duo_dense3d.cpp)
 
 add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
 
@@ -83,8 +83,8 @@ set(DENSE_LIB "${DUO_SDK_ARCH}/libDense3D.so")
 
 target_link_libraries(duo_node ${catkin_LIBRARIES} ${DUO_LIB} )
 set_target_properties(duo_node PROPERTIES COMPILE_FLAGS -g)
-target_link_libraries(dense3d ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${DUO_LIB} ${DENSE_LIB} )
-set_target_properties(dense3d PROPERTIES COMPILE_FLAGS -g)
+#target_link_libraries(dense3d ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${DUO_LIB} ${DENSE_LIB} )
+#set_target_properties(dense3d PROPERTIES COMPILE_FLAGS -g)
 
 #if(WIN32)
 #        target_link_libraries(duo_node DUOlib)

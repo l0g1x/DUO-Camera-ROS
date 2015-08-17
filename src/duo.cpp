@@ -6,9 +6,10 @@
 //
 ////////////////////////////////////////////////////////////////////
 
-#include "driverDUOstereo.h"
+#include "duo.h"
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/fill_image.h>
+#include <sensor_msgs/SetCameraInfo.h>
 
 namespace duoStereo_driver
 {
@@ -71,6 +72,23 @@ void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::
 }
 
 
+bool DUOStereoDriver::getCameraParameters(INTRINSICS *intr, EXTRINSICS *extr)
+{
+    if(!GetDUOIntrinsics(_duoInstance, intr))
+    {
+    	ROS_ERROR_STREAM("Cannot get DUO Intrinsics!");
+		return false;
+	}
+	if(!GetDUOExtrinsics(_duoInstance, extr))
+	{
+		ROS_ERROR_STREAM("Cannot get DUO Extrinsics!");
+		return false;
+	}
+
+	return true;
+}
+
+
 bool DUOStereoDriver::validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci)
 {
 	return (ci.width == image.width && ci.height == image.height);
@@ -89,7 +107,7 @@ void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERA
         // If camera info and image width and height dont match
         // then set calibration_matches to false so we then 
         // know if we should reset the camera info or not
-        if (!validateCameraInfo(*image[i], *ci)) 
+        if (!this->validateCameraInfo(*image[i], *ci)) 
         {
         	if(_calibrationMatches[i])
         	{
@@ -234,24 +252,46 @@ bool DUOStereoDriver::initializeDUO()
 	_priv_nh.param<bool>("use_DUO_imu",  _useDUO_Imu,  false);
 	_priv_nh.param<bool>("use_DUO_LEDs", _useDUO_LEDs, false);
 
+	_priv_nh.param<bool>("use_DUO_calibration",  _useDUOCalibration,  true);
 
+	_priv_nh.param<bool>("Dense3D",  _useDense3D,  false);
 
-	// set camera_info_url using launch file
-	std::string camera_info_url_left, camera_info_url_right;
-	_priv_nh.param<std::string>("camera_info_left", camera_info_url_left, "");
-	_priv_nh.param<std::string>("camera_info_right", camera_info_url_right, "");
-
-	if( _cinfo[0]->validateURL( camera_info_url_left ) && _cinfo[1]->validateURL( camera_info_url_right ) )
+	if(_useDense3D)
 	{
-		_cinfo[0]->loadCameraInfo( camera_info_url_left );
-		_cinfo[1]->loadCameraInfo( camera_info_url_right );
+		// _dense3d = new Dense3D();
+	}
 
-		ROS_INFO("custom DUO calibration files loaded");
+	if(_useDUOCalibration)
+	{
+		if(this->getCameraParameters(_duoIntrinsics, _duoExtrinsics))
+		{
+			this->setCameraInfo();
+		}
+		else
+		{
+			ROS_ERROR_STREAM("Cannot get Camera Calibration Parameters.");
+			return false;		
+		}
 	}
 	else
 	{
-		ROS_ERROR("Calibration URL is invalid.");
-		ROS_WARN("Will continue to publish uncalibrated images!");
+		// set camera_info_url using launch file
+		std::string camera_info_url_left, camera_info_url_right;
+		_priv_nh.param<std::string>("camera_info_left", camera_info_url_left, "");
+		_priv_nh.param<std::string>("camera_info_right", camera_info_url_right, "");
+
+		if( _cinfo[0]->validateURL( camera_info_url_left ) && _cinfo[1]->validateURL( camera_info_url_right ) )
+		{
+			_cinfo[0]->loadCameraInfo( camera_info_url_left );
+			_cinfo[1]->loadCameraInfo( camera_info_url_right );
+
+			ROS_INFO("custom DUO calibration files loaded");
+		}
+		else
+		{
+			ROS_ERROR("Calibration URL is invalid.");
+			ROS_WARN("Will continue to publish uncalibrated images!");
+		}
 	}
 
 
@@ -299,6 +339,47 @@ bool DUOStereoDriver::initializeDUO()
 	}
 
 	return false;
+}
+
+bool DUOStereoDriver::setCameraInfo(void)
+{
+	if (_duoIntrinsics != NULL && _duoExtrinsics != NULL)
+	{
+		//_ciService = _camera_nh.serviceClient<sensor_msgs::SetCameraInfo>("/set_camera_info");
+
+		sensor_msgs::CameraInfo 	left_camera_info;
+		sensor_msgs::CameraInfo 	right_camera_info;
+		//sensor_msgs::SetCameraInfo 	setCameraInfo;
+
+		left_camera_info.width 		= _duoIntrinsics->w;
+		left_camera_info.height 	= _duoIntrinsics->h;
+
+		right_camera_info.width 	= _duoIntrinsics->w;
+		right_camera_info.height 	= _duoIntrinsics->h;
+
+		for(int i = 0; i < 9; i++)
+		{
+			left_camera_info.R[i] 	= _duoExtrinsics->rotation[i];
+			right_camera_info.R[i] 	= _duoExtrinsics->rotation[i];
+		}
+		for(int i = 0; i < 12; i++)
+		{
+			left_camera_info.P[i] 		= _duoIntrinsics->left[i];
+			right_camera_info.P[i] 		= _duoIntrinsics->right[i];
+		}
+
+
+		_cinfo[0]->setCameraInfo(left_camera_info);
+		_cinfo[1]->setCameraInfo(right_camera_info);
+
+
+		//setCameraInfo.request.camera_info = camera_info;	
+	}
+	else
+	{
+		ROS_ERROR_STREAM("DUO Intrinsic/Extrinsic parameters not set");
+		return false;
+	}
 }
 
 // this callback function is called whenever the dynamic_reconfigure server (this node)

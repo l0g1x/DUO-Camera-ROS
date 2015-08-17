@@ -18,7 +18,6 @@
 #include <dynamic_reconfigure/server.h>
 #include <duo3d_ros/DuoConfig.h>
 
-
 namespace duoStereo_driver
 {
 
@@ -97,7 +96,10 @@ public:
 	static const int LEFT_CAM 		= 0;
 	static const int RIGHT_CAM		= 1;
 
-private:
+	DUOStereoDriver(void);
+	~DUOStereoDriver(void);
+
+protected:
 
 	/*
 	 *	@brief
@@ -105,8 +107,8 @@ private:
 	 *	of this class through the GetInstance() function call, after this DUOStereoDriver
 	 *	constructor is called for the first time. 
 	 */
-	DUOStereoDriver(void);
-	~DUOStereoDriver(void);
+	// DUOStereoDriver(void);
+	// ~DUOStereoDriver(void);
 
 	/*
 	 * 	@brief
@@ -120,7 +122,30 @@ private:
 	 *	@brief Refer to DUO API Docs for these two
 	 */
 	DUOInstance 		_duoInstance;
+	// Dense3D* 			_dense3d;
 	DUOResolutionInfo 	_duoResolutionInfo;
+
+	/*
+	 *	@brief Camera Parameter struct's. Taken from DUO API examples.
+	 */
+	typedef struct
+	{
+		unsigned short w, h;
+		double left[12];
+		double right[12];
+	} INTRINSICS;
+
+	typedef struct
+	{
+	    double rotation[9];
+	    double translation[3];
+	} EXTRINSICS;
+
+	INTRINSICS* _duoIntrinsics;
+	EXTRINSICS* _duoExtrinsics;
+
+	bool getCameraParameters(INTRINSICS *intr, EXTRINSICS *extr);
+
 
 	/*
 	 *	@brief DUO Device data we get during initialization
@@ -138,10 +163,13 @@ private:
 	int 	_duoVerticalFlip;
 
 	/*
-	 *	@params for whether or not to use IMU and/or LED sequences
+	 *	@params for whether or not to use IMU and/or LED sequences, and dense3D.
+	 *			Also whether or not to use internal DUO Calibration parameters.
 	 */
 	bool 	_useDUO_Imu;
 	bool	_useDUO_LEDs;
+	bool	_useDUOCalibration;
+	bool	_useDense3D;
 
 
 	/*
@@ -160,6 +188,14 @@ private:
 	std::string		_camera_name; 	// = "duo3d_camera";
 	std::string 	_camera_frame;
 
+	ros::ServiceClient 	_ciService;
+
+	/*
+	* 	@brief 
+	*	Calls camera info manager set_camera_info service if the use_DUO_calibration
+	*	parameter is set to true.
+	*/
+	bool setCameraInfo(void);
 
 	/*
 	* 	@brief 
