@@ -3,14 +3,17 @@ DUO-Camera-ROS
 
 [![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/l0g1x/DUO-Camera-ROS?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
 
-This package is a ROS stereo camera driver for DUO cameras. 
+ROS Driver for DUO3D (http://duo3d.com/) cameras. 
 
-The package can act as either a regular camera driver outputing a left and right camera image, or it can act purely as a stereo camera, outputing a disparity image, and a PointCloud2. The user is not limited to one or the other, both left/right camera images can be provided at the same time as disparity and PointCloud2. 
+**NOTE:** 
 
-This driver works ONLY with DUO3D (http://duo3d.com/) cameras. 
-Utilizing the optimized DUO Dense3D library, eliminates the need for other disparity calculation nodes.  
+To stay up to date with the latest (required) SDK do the following: 
+- `unset DUO_SDK` (unset the enviornment variable if previously set)
+- `catkin_make`
+- The setup_duo script will then execute
+- After it's finished, **it will print the path** to where the new downloaded DUOSDK now is
+- Copy the command **from the log**: `export DUO_SDK=/path/to/catkin_ws/devel/DUOSDK`
+- Paste it into your `~/.bashrc`
 
-There are two different nodes:
 
-	- duo_node: 			Generic DUO Camera driver (Left/Right image data)
-	- duo_dense3d_node: 	Stereo Camera driver using DUO Dense3D Library
+
