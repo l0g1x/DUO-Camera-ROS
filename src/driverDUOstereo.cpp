@@ -319,6 +319,42 @@ Mat3f DUOStereoDriver::getDepthData(const PDUOFrame pFrameData, Mat1f disparity)
 	return depth3d;
 }
 
+bool DUOStereoDriver::setCameraInfo(void)
+{
+	if (_duoIntrinsics != NULL && _duoExtrinsics != NULL)
+	{
+
+		sensor_msgs::CameraInfo left_camera_info;
+		sensor_msgs::CameraInfo right_camera_info;
+
+		left_camera_info.width = _duoIntrinsics->w;
+		left_camera_info.height = _duoIntrinsics->h;
+		right_camera_info.width = _duoIntrinsics->w;
+		right_camera_info.height = _duoIntrinsics->h;
+
+		for(int i = 0; i < 9; i++)
+		{
+			left_camera_info.R[i] = _duoExtrinsics->rotation[i];
+			right_camera_info.R[i] = _duoExtrinsics->rotation[i];
+		}
+
+		for(int i = 0; i < 12; i++)
+		{
+			left_camera_info.P[i] = _duoIntrinsics->left[i];
+			right_camera_info.P[i] = _duoIntrinsics->right[i];
+		}
+
+		_cinfo[0]->setCameraInfo(left_camera_info);
+		_cinfo[1]->setCameraInfo(right_camera_info);
+
+	}
+	else
+	{
+		ROS_ERROR_STREAM("DUO Intrinsic/Extrinsic parameters not set");
+		return false;
+	}
+}
+
 
 bool DUOStereoDriver::initializeDUO()
 {
@@ -419,26 +455,6 @@ bool DUOStereoDriver::initializeDUO()
 	}
 
 
-
-	// set camera_info_url using launch file
-	std::string camera_info_url_left, camera_info_url_right;
-	_priv_nh.param<std::string>("camera_info_left", camera_info_url_left, "");
-	_priv_nh.param<std::string>("camera_info_right", camera_info_url_right, "");
-
-	if( _cinfo[0]->validateURL( camera_info_url_left ) && _cinfo[1]->validateURL( camera_info_url_right ) )
-	{
-		_cinfo[0]->loadCameraInfo( camera_info_url_left );
-		_cinfo[1]->loadCameraInfo( camera_info_url_right );
-
-		ROS_INFO("custom DUO calibration files loaded");
-	}
-	else
-	{
-		ROS_ERROR("Calibration URL is invalid.");
-		ROS_WARN("Will continue to publish uncalibrated images!");
-	}
-
-
 	/*
 	 * @brief
 	 * Select 752x480 resolution with no binning capturing at 30FPS
@@ -466,6 +482,22 @@ bool DUOStereoDriver::initializeDUO()
 			SetDUOGain(_duoInstance, _duoGain);
 			SetDUOLedPWM(_duoInstance, _duoLEDLevel);
 			SetDUOCameraSwap(_duoInstance, 0); // Switches left and right images
+
+			// Get DUO calibration intrinsics and extrinsics
+			if(!GetDUOCalibrationPresent(_duoInstance))
+			{
+				ROS_ERROR("DUO camera calibration data not present\n");
+				return false;
+			}
+			else
+			{
+				bool result = GetDUOIntrinsics(_duoInstance, _duoIntrinsics) & GetDUOExtrinsics(_duoInstance, _duoExtrinsics);
+
+				ROS_ERROR("Could not get DUO camera calibration data\n");
+				return false;
+			}
+
+			setCameraInfo();
 
 		}
 		else
@@ -530,21 +562,8 @@ bool DUOStereoDriver::initializeDense3D() {
 		return false;
 	}
 
-	// Get DUO calibration intrinsics and extrinsics
-	INTRINSICS intr;
-	EXTRINSICS extr;
-
-	bool result = GetDUOCalibrationPresent(_duoInstance);
-	result = GetDUOIntrinsics(_duoInstance, &intr);
-	result = GetDUOExtrinsics(_duoInstance, &extr);
-	if(!result)
-	{
-		ROS_ERROR("Could not get DUO camera calibration data\n");
-		return false;
-	}
-
 	// Set Dense3D parameters
-	SetDense3DCalibration(_dense3dInstance, &intr, &extr);
+	SetDense3DCalibration(_dense3dInstance, _duoIntrinsics, _duoExtrinsics);
 
 	return true;
 }

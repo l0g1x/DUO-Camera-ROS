@@ -169,6 +169,9 @@ private:
 	int 	_duoHorizontalFlip;
 	int 	_duoVerticalFlip;
 
+	INTRINSICS* _duoIntrinsics;
+	EXTRINSICS* _duoExtrinsics;
+
 	Dense3DInstance		_dense3dInstance;
 
 	/*
@@ -244,6 +247,8 @@ private:
 	void startDense3D(void);
 	void shutdownDense3D(void);
 	bool initializeDense3D(void);
+
+	bool setCameraInfo();
 
 	Mat3f getDepthData(const PDUOFrame pFrameData, Mat1f disparity);
 
