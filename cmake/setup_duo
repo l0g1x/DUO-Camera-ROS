@@ -14,7 +14,7 @@ from requests.auth import HTTPBasicAuth
 
 logging.basicConfig(level=logging.INFO)
 
-sdk_url = 'https://duo3d.com/download_file/DUO3D-LIN-ALL-v1.0.25.180'
+sdk_url = 'https://duo3d.com/download_file/DUO3D-LIN-ALL-v1.0.35.226'
 
 #option_chosen = False
 
