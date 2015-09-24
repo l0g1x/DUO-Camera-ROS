@@ -169,8 +169,8 @@ private:
 	int 	_duoHorizontalFlip;
 	int 	_duoVerticalFlip;
 
-	INTRINSICS* _duoIntrinsics;
-	EXTRINSICS* _duoExtrinsics;
+	INTRINSICS _duoIntrinsics;
+	EXTRINSICS _duoExtrinsics;
 
 	Dense3DInstance		_dense3dInstance;
 
@@ -257,8 +257,9 @@ private:
 	 * 	Two instances of image transport publishers; Left and Right publishers
 	 */
 	boost::shared_ptr<image_transport::ImageTransport> 	_it;
-	image_transport::CameraPublisher 					_imagePub[TWO_CAMERAS];      
+	image_transport::CameraPublisher 					_imagePub[TWO_CAMERAS];
 
+	image_transport::Publisher _depthImagePub;
 	/*
 	 * 	@brief
 	 * 	Create instance of CameraInfoManager for taking care of setting/getting
