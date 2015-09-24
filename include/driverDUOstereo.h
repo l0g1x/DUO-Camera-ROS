@@ -181,6 +181,7 @@ private:
 	bool	_useDUO_LEDs;
 
 	bool	_publishDepth;
+	bool	_publishDepthImage;
 	std::string	_duoDense3dLicense;
 
 	// depth3d params

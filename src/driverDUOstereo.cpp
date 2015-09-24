@@ -26,7 +26,8 @@ DUOStereoDriver::DUOStereoDriver(void):
 	  _camera_nh("duo3d_camera"),
 	_camera_name("duo_camera"),
 	_duoInitialized(false),
-	_publishDepth(false),
+	_publishDepth(true),
+	_publishDepthImage(false),
 	         _it(new image_transport::ImageTransport(_camera_nh))
 {
 	for(int i = 0; i < TWO_CAMERAS; i++)
@@ -37,8 +38,6 @@ DUOStereoDriver::DUOStereoDriver(void):
       	_calibrationMatches[i] 	= true;
       	_imagePub[i] 			= _it->advertiseCamera(CameraNames[i]+"/image_raw", 1);
 	}
-
-	_depthImagePub = _it->advertise("depth_image", 1);
 
 	// Build color lookup table for depth display
 	colorLut = Mat(cv::Size(256, 1), CV_8UC3);
@@ -129,9 +128,11 @@ void DUOStereoDriver::fillDepthData(Mat3f depthMat, Mat1f dispMat, sensor_msgs::
 	cvtColor(disp8, mRGBDepth, COLOR_GRAY2BGR);
 	LUT(mRGBDepth, colorLut, mRGBDepth);
 
-	sensor_msgs::ImagePtr depthMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mRGBDepth).toImageMsg();
-	_depthImagePub.publish(depthMsg);
-
+	if (_publishDepthImage)
+	{
+		sensor_msgs::ImagePtr depthMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mRGBDepth).toImageMsg();
+		_depthImagePub.publish(depthMsg);
+	}
 
 	modifier.resize(resWidth * resHeight);
 	depthData->header.stamp = ros::Time( double(pFrameData->timeStamp) * 1.e-4);
@@ -292,74 +293,33 @@ Mat3f DUOStereoDriver::getDepthData(const PDUOFrame pFrameData, Mat1f disparity)
 		ROS_INFO("Could not get depth data. %i", (int) error);
 	}
 
-	/*
-	for (int v = 0; v < depth3d.rows; ++v)
-		{
-			for (int u = 0; u < depth3d.cols; ++u)
-			{
-				//PDense3DDepth d = (PDense3DDepth) depth3d(v, u);
-				float x = depth3d(v, u)[0];
-				float y = depth3d(v, u)[1];
-				float z = depth3d(v, u)[2];
-				ROS_INFO("%d:%d:%d", depth3d(v, u)[0], depth3d(v, u)[1], depth3d(v, u)[2]);
-				// x,y,z
-
-			}
-		}
-	*/
-
-	//std::string
-	/*
-	char* plyFile = new char[10];
-	plyFile = "test.ply";
-	Dense3DSavePLY(_dense3dInstance, plyFile);
-
-
-	FileStorage file("depthmat.xml", FileStorage::WRITE);
-	FileStorage dispfile("disparity.xml", FileStorage::WRITE);
-
-	// Write to file!
-	file << "depthmat" << depth3d;
-	dispfile << "disparity" << disparity;
-	*/
-
 	return depth3d;
 }
 
 bool DUOStereoDriver::setCameraInfo(void)
 {
-	if (true) //_duoIntrinsics != NULL && _duoExtrinsics != NULL)
+	sensor_msgs::CameraInfo left_camera_info;
+	sensor_msgs::CameraInfo right_camera_info;
+
+	left_camera_info.width = _duoIntrinsics.w;
+	left_camera_info.height = _duoIntrinsics.h;
+	right_camera_info.width = _duoIntrinsics.w;
+	right_camera_info.height = _duoIntrinsics.h;
+
+	for(int i = 0; i < 9; i++)
 	{
-
-		sensor_msgs::CameraInfo left_camera_info;
-		sensor_msgs::CameraInfo right_camera_info;
-
-		left_camera_info.width = _duoIntrinsics.w;
-		left_camera_info.height = _duoIntrinsics.h;
-		right_camera_info.width = _duoIntrinsics.w;
-		right_camera_info.height = _duoIntrinsics.h;
-
-		for(int i = 0; i < 9; i++)
-		{
-			left_camera_info.R[i] = _duoExtrinsics.rotation[i];
-			right_camera_info.R[i] = _duoExtrinsics.rotation[i];
-		}
-
-		for(int i = 0; i < 12; i++)
-		{
-			left_camera_info.P[i] = _duoIntrinsics.left[i];
-			right_camera_info.P[i] = _duoIntrinsics.right[i];
-		}
-
-		_cinfo[0]->setCameraInfo(left_camera_info);
-		_cinfo[1]->setCameraInfo(right_camera_info);
-
+		left_camera_info.R[i] = _duoExtrinsics.rotation[i];
+		right_camera_info.R[i] = _duoExtrinsics.rotation[i];
 	}
-	else
+
+	for(int i = 0; i < 12; i++)
 	{
-		ROS_ERROR_STREAM("DUO Intrinsic/Extrinsic parameters not set");
-		return false;
+		left_camera_info.P[i] = _duoIntrinsics.left[i];
+		right_camera_info.P[i] = _duoIntrinsics.right[i];
 	}
+
+	_cinfo[0]->setCameraInfo(left_camera_info);
+	_cinfo[1]->setCameraInfo(right_camera_info);
 }
 
 
@@ -449,6 +409,7 @@ bool DUOStereoDriver::initializeDUO()
 	_priv_nh.param<bool>("use_DUO_imu",  _useDUO_Imu,  false);
 	_priv_nh.param<bool>("use_DUO_LEDs", _useDUO_LEDs, false);
 	_priv_nh.param<bool>("publishDepth", _publishDepth, false);
+	_priv_nh.param<bool>("publishDepthImage", _publishDepthImage, false);
 
 	if (_useDUO_Imu)
 	{
@@ -459,6 +420,11 @@ bool DUOStereoDriver::initializeDUO()
 	if (_publishDepth)
 	{
 		depthPub = _camera_nh.advertise<sensor_msgs::PointCloud2>("pointcloud", 2);
+	}
+
+	if (_publishDepthImage)
+	{
+		_depthImagePub = _it->advertise("depth_image", 1);
 	}
 
 
@@ -500,7 +466,6 @@ bool DUOStereoDriver::initializeDUO()
 			else
 			{
 				bool result = GetDUOIntrinsics(_duoInstance, &_duoIntrinsics);
-			//	bool result = true;
 
 				if (result)
 					result = GetDUOExtrinsics(_duoInstance, &_duoExtrinsics);
