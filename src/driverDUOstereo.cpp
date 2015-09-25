@@ -24,7 +24,7 @@ DUOStereoDriver::DUOStereoDriver(void):
 	_useDUO_LEDs(true),
 	    _priv_nh("~"),
 	  _camera_nh("duo3d_camera"),
-	_camera_name("duo_camera"),
+	_camera_name("duo3d_camera"),
 	_duoInitialized(false),
 	_publishDepth(true),
 	_publishDepthImage(false),
@@ -169,13 +169,6 @@ void DUOStereoDriver::fillDepthData(Mat3f depthMat, Mat1f dispMat, sensor_msgs::
 	}
 }
 
-
-bool DUOStereoDriver::validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci)
-{
-	return (ci.width == image.width && ci.height == image.height);
-}
-
-
 void DUOStereoDriver::publishIMUData(const sensor_msgs::ImuPtr imuData, const std_msgs::Float32Ptr tempData) {
 	tempPub.publish(tempData);
 	imuPub.publish(imuData);
@@ -184,15 +177,14 @@ void DUOStereoDriver::publishIMUData(const sensor_msgs::ImuPtr imuData, const st
 void DUOStereoDriver::publishDepthData(const sensor_msgs::PointCloud2Ptr depthData) {
 	depthPub.publish(depthData);
 
-/*
+
 	tf::Transform transform;
 	transform.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
 	tf::Quaternion q;
 	q.setRPY(0, 0, 0);
 
 	transform.setRotation(q);
-	br.sendTransform(tf::StampedTransform(transform, depthData->header.stamp, "world", _camera_name));
-	*/
+	br.sendTransform(tf::StampedTransform(transform, depthData->header.stamp, "map", _camera_name));
 }
 
 void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERAS])
@@ -207,27 +199,6 @@ void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERA
         // If camera info and image width and height dont match
         // then set calibration_matches to false so we then 
         // know if we should reset the camera info or not
-        if (!validateCameraInfo(*image[i], *ci)) 
-        {
-        	if(_calibrationMatches[i])
-        	{
-        		_calibrationMatches[i] = false; 
-        		ROS_WARN_STREAM("*" << _camera_name << "/" << CameraNames[i] << "* "
-        							<< "camera_info is different then calibration info. "
-        							<< "Uncalibrated image being sent.");
-        	}
-        	ci.reset(new sensor_msgs::CameraInfo());
-            ci->height 	= image[i]->height;
-            ci->width 	= image[i]->width;
-        }
-        else if (!_calibrationMatches[i])
-        {
-        	// Calibration is now okay
-        	_calibrationMatches[i] = true; 
-    		ROS_WARN_STREAM("*" << _camera_name << "/" << CameraNames[i] << "* "
-    							<< "is now publishing calibrated images. ");
-        }
-
         ci->header.frame_id = image[i]->header.frame_id;
         ci->header.stamp 	= image[i]->header.stamp;
 
@@ -503,14 +474,13 @@ bool DUOStereoDriver::initializeDUO()
 
 bool DUOStereoDriver::initializeDense3D() {
 
-	_priv_nh.param("numDisparities", _numDisparities, 3);
-	_priv_nh.param("sadWindowSize"		, _sadWindowSize 		, 2);
-	_priv_nh.param("p1"					, _p1					, 800);
-	_priv_nh.param("p2"					, _p2					, 1600);
-	_priv_nh.param("preFilterCap"		, _preFilterCap			, 0);
-	_priv_nh.param("uniquenessRatio"	, _uniquenessRatio		, 0);
-	_priv_nh.param("speckleWindowSize"	, _speckleWindowSize	, 0);
-	_priv_nh.param("speckleRange"		, _speckleRange			, 0);
+	_priv_nh.param("numDisparities", _numDisparities, 2);
+	_priv_nh.param("sadWindowSize"		, _sadWindowSize 		, 6);
+	_priv_nh.param("preFilterCap"		, _preFilterCap			, 28);
+	_priv_nh.param("uniquenessRatio"	, _uniquenessRatio		, 27);
+	_priv_nh.param("speckleWindowSize"	, _speckleWindowSize	, 52);
+	_priv_nh.param("speckleRange"		, _speckleRange			, 14);
+	_priv_nh.param("dense3dMode"		, _dense3dMode			, 0);
 
 	ROS_INFO("Initiliazing DUO Dense 3D");
 	if (!Dense3DOpen(&_dense3dInstance))
@@ -527,10 +497,9 @@ bool DUOStereoDriver::initializeDense3D() {
 	}
 
 
+	SetDense3DMode(_dense3dInstance, _dense3dMode);
 	SetDense3DNumDisparities(_dense3dInstance, _numDisparities);
 	SetDense3DSADWindowSize(_dense3dInstance, _sadWindowSize);
-	//SetDense3DP1(_dense3dInstance, _p1);
-	//SetDense3DP2(_dense3dInstance, _p2);
 	SetDense3DPreFilterCap(_dense3dInstance, _preFilterCap);
 	SetDense3DUniquenessRatio(_dense3dInstance, _uniquenessRatio);
 	SetDense3DSpeckleWindowSize(_dense3dInstance, _speckleWindowSize);
@@ -591,42 +560,37 @@ void DUOStereoDriver::dynamicCallback(duo3d_ros::DuoConfig &config, uint32_t lev
 
   	if (_numDisparities != config.numDisparities){
 		_numDisparities = config.numDisparities;
-		SetDense3DNumDisparities(&_dense3dInstance, _numDisparities);
+		SetDense3DNumDisparities(_dense3dInstance, _numDisparities);
 	}
 
 	if (_sadWindowSize != config.sadWindowSize) {
 		_sadWindowSize = config.sadWindowSize;
-		SetDense3DSADWindowSize(&_dense3dInstance, _sadWindowSize);
-	}
-
-	if (_p1 != config.p1) {
-		_p1 = config.p1;
-		//SetDense3DP1(&_dense3dInstance, _p1);
-	}
-
-	if (_p2 != config.p2) {
-		_p2 = config.p2;
-		//SetDense3DP2(&_dense3dInstance, _p2);
+		SetDense3DSADWindowSize(_dense3dInstance, _sadWindowSize);
 	}
 
 	if (_preFilterCap != config.preFilterCap) {
 		_preFilterCap = config.preFilterCap;
-		SetDense3DPreFilterCap(&_dense3dInstance, _preFilterCap);
+		SetDense3DPreFilterCap(_dense3dInstance, _preFilterCap);
 	}
 
 	if (_uniquenessRatio != config.uniquenessRatio) {
 		_uniquenessRatio = config.uniquenessRatio;
-		SetDense3DUniquenessRatio(&_dense3dInstance, _uniquenessRatio);
+		SetDense3DUniquenessRatio(_dense3dInstance, _uniquenessRatio);
 	}
 
 	if (_speckleWindowSize != config.speckleWindowSize) {
 		_speckleWindowSize = config.speckleWindowSize;
-		SetDense3DSpeckleWindowSize(&_dense3dInstance, _speckleWindowSize);
+		SetDense3DSpeckleWindowSize(_dense3dInstance, _speckleWindowSize);
 	}
 
 	if (_speckleRange != config.speckleRange) {
 		_speckleRange = config.speckleRange;
-		SetDense3DSpeckleRange(&_dense3dInstance, _speckleRange);
+		SetDense3DSpeckleRange(_dense3dInstance, _speckleRange);
+	}
+
+	if (_dense3dMode != config.dense3dMode) {
+		_dense3dMode = config.dense3dMode;
+		SetDense3DMode(_dense3dInstance, _dense3dMode);
 	}
 
 }

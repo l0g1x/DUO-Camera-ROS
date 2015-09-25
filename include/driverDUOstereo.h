@@ -189,10 +189,9 @@ private:
 	int _speckleRange;			// 0 - 16
 	int _uniquenessRatio;		// 0 - 100
 	int _preFilterCap;			// 0 - 256
-	int _p1;					// 0 - 3200
-	int _p2;					// 0 - 3200
 	int _sadWindowSize;		// 2 - 10
 	int _numDisparities;		// 2 - 16
+	int _dense3dMode;			// 0 -1
 
 	/*
 	 * 	@priv_nh: 		used for grabbing params for launch files configs
@@ -223,17 +222,6 @@ private:
 
 	void fillIMUData(sensor_msgs::Imu& imuData, std_msgs::Float32& tempData, const PDUOFrame pFrameData);
 	void fillDepthData(Mat3f depthMat,  Mat1f dispMat, sensor_msgs::PointCloud2Ptr depthData, const PDUOFrame pFrameData);
-
-	/*
- 	 * 	@brief 
- 	 * 	Checking if the camerainfo we received from camera_info_manager is the same as the image
- 	 * 	we are about to send.
-	 *	
-	 *	@WARN
-	 *	Notify user if camera info and user specified camera settings are different, and that we
-	 *	will still publish uncalibrated images.
-	 */
-	bool validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci);
 
 	/*
 	 *	@brief
