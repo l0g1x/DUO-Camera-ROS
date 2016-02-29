@@ -10,16 +10,43 @@
 #define DUOCamera_StereoDriver_h
 
 #include <DUOLib.h>
+#include <Dense3D.h>
 #include <ros/ros.h>
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/Imu.h>
+#include <std_msgs/Float32.h>
+#include <pcl_ros/point_cloud.h>
+#include <pcl/point_types.h>
+#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/point_cloud2_iterator.h>
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
+#include <tf/transform_broadcaster.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <duo3d_ros/DuoConfig.h>
 
+#include <string>
+#include <opencv2/opencv.hpp>
+
+using namespace cv;
+
 namespace duoStereo_driver
 {
+
+
+typedef struct
+{
+	unsigned short w, h;
+	double left[12];
+	double right[12];
+}INTRINSICS;
+
+typedef struct
+{
+	double rotation[9];
+	double translation[3];
+}EXTRINSICS;
 
 class DUOStereoDriver
 {
@@ -87,6 +114,10 @@ public:
 	void shutdownDUO(void);
 	void setup(void);
 
+	bool useImuData();
+	bool useDepthData();
+
+
 	/*
 	 *	@brief
 	 *	Used in the DUOCallback function for determine which image array index
@@ -124,6 +155,7 @@ protected:
 	DUOInstance 		_duoInstance;
 	// Dense3D* 			_dense3d;
 	DUOResolutionInfo 	_duoResolutionInfo;
+	bool	_duoInitialized;
 
 	/*
 	 *	@brief Camera Parameter struct's. Taken from DUO API examples.
@@ -155,12 +187,18 @@ protected:
 	char 	_duoDeviceFirmwareVersion[260];
 	char 	_duoDeviceFirmwareBuild[260];
 
+
 	double 	_duoExposure;
 	double	_duoGain;
 	double 	_duoLEDLevel;
 	int 	_duoCameraSwap;
 	int 	_duoHorizontalFlip;
 	int 	_duoVerticalFlip;
+
+	INTRINSICS _duoIntrinsics;
+	EXTRINSICS _duoExtrinsics;
+
+	Dense3DInstance		_dense3dInstance;
 
 	/*
 	 *	@params for whether or not to use IMU and/or LED sequences, and dense3D.
@@ -171,6 +209,18 @@ protected:
 	bool	_useDUOCalibration;
 	bool	_useDense3D;
 
+	bool	_publishDepth;
+	bool	_publishDepthImage;
+	std::string	_duoDense3dLicense;
+
+	// depth3d params
+	int _speckleWindowSize;  	// 0 - 256
+	int _speckleRange;			// 0 - 16
+	int _uniquenessRatio;		// 0 - 100
+	int _preFilterCap;			// 0 - 256
+	int _sadWindowSize;		// 2 - 10
+	int _numDisparities;		// 2 - 16
+	int _dense3dMode;			// 0 -1
 
 	/*
 	 * 	@priv_nh: 		used for grabbing params for launch files configs
@@ -188,14 +238,8 @@ protected:
 	std::string		_camera_name; 	// = "duo3d_camera";
 	std::string 	_camera_frame;
 
-	ros::ServiceClient 	_ciService;
-
-	/*
-	* 	@brief 
-	*	Calls camera info manager set_camera_info service if the use_DUO_calibration
-	*	parameter is set to true.
-	*/
-	bool setCameraInfo(void);
+	int 	resWidth;
+	int 	resHeight;
 
 	/*
 	* 	@brief 
@@ -205,16 +249,8 @@ protected:
 							sensor_msgs::Image& rightImage, 
 							const PDUOFrame pFrameData);
 
-	/*
- 	 * 	@brief 
- 	 * 	Checking if the camerainfo we received from camera_info_manager is the same as the image
- 	 * 	we are about to send.
-	 *	
-	 *	@WARN
-	 *	Notify user if camera info and user specified camera settings are different, and that we
-	 *	will still publish uncalibrated images.
-	 */
-	bool validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci);
+	void fillIMUData(sensor_msgs::Imu& imuData, std_msgs::Float32& tempData, const PDUOFrame pFrameData);
+	void fillDepthData(Mat3f depthMat,  Mat1f dispMat, sensor_msgs::PointCloud2Ptr depthData, const PDUOFrame pFrameData);
 
 	/*
 	 *	@brief
@@ -223,14 +259,25 @@ protected:
 	 *	function.
 	 */
 	void publishImages(		const sensor_msgs::ImagePtr image[TWO_CAMERAS]);
+	void publishDepthData (const sensor_msgs::PointCloud2Ptr depthData);
+	void publishIMUData (const sensor_msgs::ImuPtr imuData, const std_msgs::Float32Ptr tempData);
+
+	void startDense3D(void);
+	void shutdownDense3D(void);
+	bool initializeDense3D(void);
+
+	bool setCameraInfo();
+
+	Mat3f getDepthData(const PDUOFrame pFrameData, Mat1f disparity);
 
 	/*
 	 * 	@brief
 	 * 	Two instances of image transport publishers; Left and Right publishers
 	 */
 	boost::shared_ptr<image_transport::ImageTransport> 	_it;
-	image_transport::CameraPublisher 					_imagePub[TWO_CAMERAS];      
+	image_transport::CameraPublisher 					_imagePub[TWO_CAMERAS];
 
+	image_transport::Publisher _depthImagePub;
 	/*
 	 * 	@brief
 	 * 	Create instance of CameraInfoManager for taking care of setting/getting
@@ -238,6 +285,16 @@ protected:
 	 */
 	boost::shared_ptr<camera_info_manager::CameraInfoManager> _cinfo[TWO_CAMERAS];
 
+
+	ros::Publisher imuPub;
+	ros::Publisher tempPub;
+	ros::Publisher depthPub;
+
+	tf::TransformBroadcaster br;
+
+	Mat colorLut;
+
+	Vec3b HSV2RGB(float hue, float sat, float val);
 
 	/* 
 	 * 	@brief

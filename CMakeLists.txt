@@ -10,37 +10,16 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   dynamic_reconfigure
   pcl_ros
+  cv_bridge
 )
 
 find_package(Boost REQUIRED)
 find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
 
-message(STATUS "-----------------------")
-# Get DUO_SDK install path from environment variable if set
-if(DEFINED ENV{DUO_SDK})
-  message(STATUS "DUO SDK enviornment variable found.")
-  set(DUO_SDK $ENV{DUO_SDK} )
-  message(STATUS "DUO_SDK: ${DUO_SDK}")
-else()
-#  message(STATUS "\n    ____________________________________________")
-#  message(STATUS "| ")
-  message(STATUS "DUO SDK enviornment variable NOT found.")
-#  message(STATUS "| ")
-#  message(STATUS "| Please set the DUO_SDK enviornment variable.")
-#  message(STATUS "| You can do so by adding a line to your .bashrc")
-#  message(STATUS "| Example:")
-#  message(STATUS "|    export DUO_SDK=home/l0g1x/Downloads/CL-DUO3D-LIN-1.0.25.180/DUOSDK/SDK/")
-#  message(STATUS "| ")
-#  message(STATUS "| You may also want to clean your build folder after you do that.")
-#  message(STATUS "|_____________________________________________\n")
-  include(cmake/SetupDuoSDK.cmake)
-  setup_duo(DUO_SDK) 
-  # DUO_SDK envvar should be set after setup_duo()
-  message(STATUS "DUO_SDK: ${DUO_SDK}")
-endif()
-message(STATUS "-----------------------")
-
-set(DUO_INCLUDE_DIR ${DUO_SDK}/include)
+# Add DUO include and lib
+set(DUO_SDK /home/lbarnett/development/CL-DUO3D-LIN-1.0.35.226/DUOSDK/SDK)
+include_directories(${DUO_SDK}/include ${PCL_INCLUDE_DIRS})
 
 # Detect Compiler / Arch and add libraries
 if(APPLE)
@@ -71,8 +50,9 @@ include_directories(include ${catkin_INCLUDE_DIRS} ${PCL_INCLUDE_DIRS})
 include_directories(${DUO_INCLUDE_DIR})
 
 
-add_executable(duo_node src/duo.cpp src/main.cpp src/dense3d.cpp)
-#add_executable(dense3d src/duo_dense3d.cpp)
+add_executable(duo_node src/driverDUOstereo.cpp src/node.cpp)
+#add_executable(duodense3d_node src/driverDUODense3D.cpp src/driverDUOstereo.cpp src/dense3d_node.cpp)
+add_executable(dense3d src/duo_dense3d.cpp)
 
 add_dependencies(duo_node ${PROJECT_NAME}_gencfg)
 
@@ -83,16 +63,20 @@ set(DENSE_LIB "${DUO_SDK_ARCH}/libDense3D.so")
 
 target_link_libraries(duo_node ${catkin_LIBRARIES} ${DUO_LIB} )
 set_target_properties(duo_node PROPERTIES COMPILE_FLAGS -g)
-#target_link_libraries(dense3d ${catkin_LIBRARIES} ${PCL_LIBRARIES} ${DUO_LIB} ${DENSE_LIB} )
-#set_target_properties(dense3d PROPERTIES COMPILE_FLAGS -g)
+target_link_libraries(dense3d ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+set_target_properties(dense3d PROPERTIES COMPILE_FLAGS -g)
+#target_link_libraries(duodense3d_node ${catkin_LIBRARIES} ${PCL_LIBRARIES})
+set_target_properties(dense3d PROPERTIES COMPILE_FLAGS -g)
 
-#if(WIN32)
-#        target_link_libraries(duo_node DUOlib)
-#        target_link_libraries(dense3d DUOlib)
-#elseif(UNIX OR APPLE)
-#	target_link_libraries(duo_node duo)
-#        target_link_libraries(dense3d duo)
-#endif()
+if(WIN32)
+        target_link_libraries(duo_node DUOlib)
+        target_link_libraries(dense3d DUOlib)
+#        target_link_libraries(duodense3d_node DUOlib)
+elseif(UNIX OR APPLE)
+	target_link_libraries(duo_node DUO Dense3D)
+        target_link_libraries(dense3d DUO Dense3D)        
+#        target_link_libraries(duodense3d_node DUO Dense3D)        
+endif()
 
 #############
 ## Testing ##

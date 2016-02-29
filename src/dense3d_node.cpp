@@ -7,17 +7,17 @@
 ////////////////////////////////////////////////////////////////////
 
 
-#include "duo.h"
+#include "driverDUODense3D.h"
 #include <signal.h>
 
-using namespace duoStereo_driver;
+using namespace duoDense3D_driver;
 
 
 /*
- * 	@brief 
- * 	Have to implement this custom SIGINT Handler in order to properly 
+ * 	@brief
+ * 	Have to implement this custom SIGINT Handler in order to properly
  * 	shutdown the DUO camera and call the shutdownDUO() function
- * 	to terminate the connection between the computer and camera. 
+ * 	to terminate the connection between the computer and camera.
  * 	http://wiki.ros.org/roscpp/Overview/Initialization%20and%20Shutdown
  */
 void sigIntHandler(int sig)
@@ -25,9 +25,9 @@ void sigIntHandler(int sig)
     ROS_DEBUG("--> SIGINT Handler called <--");
 
     //Destory our pSingleton Instance that we created.
-    DUOStereoDriver::DestroyInstance();
+    DUODense3DDriver::DestroyInstance();
 
-    // Tell the ros node that we want to shutdown, so we receive a 
+    // Tell the ros node that we want to shutdown, so we receive a
     // clean exit
     ros::shutdown();
 }
@@ -35,7 +35,7 @@ void sigIntHandler(int sig)
 
 int main(int argc, char **argv)
 {
-  	ros::init(argc, argv, "duo3d_node");
+  	ros::init(argc, argv, "duodense3d_node");
 
   	/*
   	 *	@brief
@@ -44,15 +44,7 @@ int main(int argc, char **argv)
   	 * 	one instance of the DUOStereoDriver class, and then can normally call public
   	 *	member functions later.
   	 */
-/*    if (ros::param::has("~Dense3D"))
-    {
-      ROS_INFO("Using Dense3D");
-    }
-    else
-    {
-      DUOStereoDriver& duoDriver = DUOStereoDriver::GetInstance();
-    }*/
-  	DUOStereoDriver& duoDriver = DUOStereoDriver::GetInstance();
+  	DUODense3DDriver& dense3dDriver = DUODense3DDriver::GetInstance();
 
 
 	/*
@@ -70,17 +62,17 @@ int main(int argc, char **argv)
   	 *	is called so that the NodeHandle publishers have a chance to be invoked
   	 * 	and send the images to their topics.
   	 */
-  	if (duoDriver.initializeDUO())
+  	if (dense3dDriver.initializeDense3D())
   	{
-  		duoDriver.setup();
-  		duoDriver.startDUO();
+  		dense3dDriver.setup();
+  		dense3dDriver.startDense3D();
 
-   		ros::spin();
-	}
-     	else
-     	{
+  		ros::spin();
+    }
+    else
+	{
 
-		ROS_ERROR("Initialization failed. Exiting DUO Node.");
+		ROS_ERROR("Initialization failed. Exiting DUO Dense3D Node.");
 	}
 
 	return 0;

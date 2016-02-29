@@ -9,7 +9,7 @@
 #include "duo.h"
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/fill_image.h>
-#include <sensor_msgs/SetCameraInfo.h>
+#include <cv_bridge/cv_bridge.h>
 
 namespace duoStereo_driver
 {
@@ -20,11 +20,14 @@ const std::string DUOStereoDriver::CameraNames[TWO_CAMERAS] = {"left","right"};
 
 
 DUOStereoDriver::DUOStereoDriver(void):
-	 _useDUO_Imu(false),
-	_useDUO_LEDs(false),
+	 _useDUO_Imu(true),
+	_useDUO_LEDs(true),
 	    _priv_nh("~"),
 	  _camera_nh("duo3d_camera"),
-	_camera_name("duo_camera"),
+	_camera_name("duo3d_camera"),
+	_duoInitialized(false),
+	_publishDepth(true),
+	_publishDepthImage(false),
 	         _it(new image_transport::ImageTransport(_camera_nh))
 {
 	for(int i = 0; i < TWO_CAMERAS; i++)
@@ -35,12 +38,27 @@ DUOStereoDriver::DUOStereoDriver(void):
       	_calibrationMatches[i] 	= true;
       	_imagePub[i] 			= _it->advertiseCamera(CameraNames[i]+"/image_raw", 1);
 	}
+
+	// Build color lookup table for depth display
+	colorLut = Mat(cv::Size(256, 1), CV_8UC3);
+	for(int i = 0; i < 256; i++)
+		colorLut.at<Vec3b>(i) = (i==0) ? Vec3b(0, 0, 0) : HSV2RGB(i/256.0f, 1, 1);
 }
 
 
 DUOStereoDriver::~DUOStereoDriver(void)
 {
 
+}
+
+bool DUOStereoDriver::useImuData()
+{
+	return _useDUO_Imu;
+}
+
+bool DUOStereoDriver::useDepthData()
+{
+	return _publishDepth;
 }
 
 
@@ -71,29 +89,103 @@ void DUOStereoDriver::fillDUOImages(sensor_msgs::Image& leftImage, sensor_msgs::
 			                pFrameData->rightData);
 }
 
-
-bool DUOStereoDriver::getCameraParameters(INTRINSICS *intr, EXTRINSICS *extr)
+void DUOStereoDriver::fillIMUData(sensor_msgs::Imu& imuData, std_msgs::Float32& tempData,  const PDUOFrame pFrameData)
 {
-    if(!GetDUOIntrinsics(_duoInstance, intr))
-    {
-    	ROS_ERROR_STREAM("Cannot get DUO Intrinsics!");
-		return false;
-	}
-	if(!GetDUOExtrinsics(_duoInstance, extr))
+
+	imuData.header.stamp = ros::Time( double(pFrameData->timeStamp) * 1.e-4);
+	imuData.header.frame_id = _camera_frame;
+
+	imuData.orientation.x = pFrameData->magData[0];
+	imuData.orientation.y = pFrameData->magData[1];
+	imuData.orientation.z = pFrameData->magData[2];
+
+	imuData.angular_velocity.x = pFrameData->gyroData[0];
+	imuData.angular_velocity.y = pFrameData->gyroData[1];
+	imuData.angular_velocity.z = pFrameData->gyroData[2];
+
+	imuData.linear_acceleration.x = pFrameData->accelData[0];
+	imuData.linear_acceleration.y = pFrameData->accelData[1];
+	imuData.linear_acceleration.z = pFrameData->accelData[2];
+
+	tempData.data = pFrameData->tempData;
+}
+
+void DUOStereoDriver::fillDepthData(Mat3f depthMat, Mat1f dispMat, sensor_msgs::PointCloud2Ptr depthData, const PDUOFrame pFrameData)
+{
+	sensor_msgs::PointCloud2Modifier modifier(*depthData);
+	/*modifier.setPointCloud2Fields(3, "x", 1, sensor_msgs::PointField::FLOAT32,
+	                                            "y", 1, sensor_msgs::PointField::FLOAT32,
+	                                            "z", 1, sensor_msgs::PointField::FLOAT32);
+*/
+	modifier.setPointCloud2FieldsByString(2, "xyz", "rgb");
+
+
+	uint32_t disparities;
+	GetDense3DNumDisparities(_dense3dInstance, &disparities);
+	Mat disp8;
+	dispMat.convertTo(disp8, CV_8UC1, 255.0/(disparities*16));
+	Mat mRGBDepth;
+	cvtColor(disp8, mRGBDepth, COLOR_GRAY2BGR);
+	LUT(mRGBDepth, colorLut, mRGBDepth);
+
+	if (_publishDepthImage)
 	{
-		ROS_ERROR_STREAM("Cannot get DUO Extrinsics!");
-		return false;
+		sensor_msgs::ImagePtr depthMsg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", mRGBDepth).toImageMsg();
+		_depthImagePub.publish(depthMsg);
 	}
 
-	return true;
+	modifier.resize(resWidth * resHeight);
+	depthData->header.stamp = ros::Time( double(pFrameData->timeStamp) * 1.e-4);
+	depthData->header.frame_id = _camera_frame;
+	depthData->height = depthMat.rows;
+	depthData->width = depthMat.cols;
+	depthData->is_dense = false;
+	depthData->is_bigendian = false;
+	//depthData.point_step = 3;
+
+	sensor_msgs::PointCloud2Iterator<float> iter_x(*depthData, "x");
+	sensor_msgs::PointCloud2Iterator<float> iter_y(*depthData, "y");
+	sensor_msgs::PointCloud2Iterator<float> iter_z(*depthData, "z");
+	sensor_msgs::PointCloud2Iterator<uint8_t> iter_r(*depthData, "r");
+	sensor_msgs::PointCloud2Iterator<uint8_t> iter_g(*depthData, "g");
+	sensor_msgs::PointCloud2Iterator<uint8_t> iter_b(*depthData, "b");
+
+	float bad_point = std::numeric_limits<float>::quiet_NaN ();
+
+	for (int v = 0; v < depthMat.rows; ++v)
+	{
+		for (int u = 0; u < depthMat.cols; ++u, ++iter_x, ++iter_y, ++iter_z, ++iter_r, ++iter_g, ++iter_b)
+		{
+			// x,y,z
+			*iter_x = depthMat(v, u)[0] / 1000;
+			*iter_y = depthMat(v, u)[1] / 1000;
+			*iter_z = depthMat(v, u)[2] / 1000;
+
+			cv::Vec3b& rgb = mRGBDepth.at<cv::Vec3b>(v, u);
+			*iter_r = rgb[2];
+			*iter_g = rgb[1];
+			*iter_b = rgb[0];
+		}
+	}
 }
 
-
-bool DUOStereoDriver::validateCameraInfo(const sensor_msgs::Image &image, const sensor_msgs::CameraInfo &ci)
-{
-	return (ci.width == image.width && ci.height == image.height);
+void DUOStereoDriver::publishIMUData(const sensor_msgs::ImuPtr imuData, const std_msgs::Float32Ptr tempData) {
+	tempPub.publish(tempData);
+	imuPub.publish(imuData);
 }
 
+void DUOStereoDriver::publishDepthData(const sensor_msgs::PointCloud2Ptr depthData) {
+	depthPub.publish(depthData);
+
+
+	tf::Transform transform;
+	transform.setOrigin( tf::Vector3(0.0, 0.0, 0.0) );
+	tf::Quaternion q;
+	q.setRPY(0, 0, 0);
+
+	transform.setRotation(q);
+	br.sendTransform(tf::StampedTransform(transform, depthData->header.stamp, "map", _camera_name));
+}
 
 void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERAS])
 {
@@ -107,27 +199,6 @@ void DUOStereoDriver::publishImages(const sensor_msgs::ImagePtr image[TWO_CAMERA
         // If camera info and image width and height dont match
         // then set calibration_matches to false so we then 
         // know if we should reset the camera info or not
-        if (!this->validateCameraInfo(*image[i], *ci)) 
-        {
-        	if(_calibrationMatches[i])
-        	{
-        		_calibrationMatches[i] = false; 
-        		ROS_WARN_STREAM("*" << _camera_name << "/" << CameraNames[i] << "* "
-        							<< "camera_info is different then calibration info. "
-        							<< "Uncalibrated image being sent.");
-        	}
-        	ci.reset(new sensor_msgs::CameraInfo());
-            ci->height 	= image[i]->height;
-            ci->width 	= image[i]->width;
-        }
-        else if (!_calibrationMatches[i])
-        {
-        	// Calibration is now okay
-        	_calibrationMatches[i] = true; 
-    		ROS_WARN_STREAM("*" << _camera_name << "/" << CameraNames[i] << "* "
-    							<< "is now publishing calibrated images. ");
-        }
-
         ci->header.frame_id = image[i]->header.frame_id;
         ci->header.stamp 	= image[i]->header.stamp;
 
@@ -159,8 +230,67 @@ void CALLBACK DUOCallback(const PDUOFrame pFrameData, void *pUserData)
     // Then publish the images
     //duoDriver.fillDUOImages(*image[duoDriver.LEFT_CAM], *image[duoDriver.RIGHT_CAM], pFrameData);
     duoDriver.fillDUOImages(*image[1], *image[0], pFrameData);
+
+    if (duoDriver.useImuData())
+    {
+		sensor_msgs::ImuPtr imu(new sensor_msgs::Imu);
+		std_msgs::Float32Ptr temp(new std_msgs::Float32);
+		duoDriver.fillIMUData(*imu, *temp, pFrameData);
+		duoDriver.publishIMUData(imu, temp);
+
+    }
+
+    if (duoDriver.useDepthData())
+    {
+    	sensor_msgs::PointCloud2Ptr depthData(new sensor_msgs::PointCloud2);
+
+    	Mat1f dispMat = Mat(Size(duoDriver.resWidth, duoDriver.resHeight), CV_32FC1);
+    	Mat3f depthMat = duoDriver.getDepthData(pFrameData, dispMat);
+
+    	duoDriver.fillDepthData(depthMat, dispMat, depthData, pFrameData);
+    	duoDriver.publishDepthData(depthData);
+    }
+
     duoDriver.publishImages(image);
 
+}
+
+Mat3f DUOStereoDriver::getDepthData(const PDUOFrame pFrameData, Mat1f disparity) {
+	Mat3f depth3d = Mat(Size(resWidth, resHeight), CV_32FC3);
+	PDense3DDepth data;// = new PDense3DDepth[resWidth * resHeight];
+	if (!Dense3DGetDepth(_dense3dInstance, pFrameData->leftData, pFrameData->rightData,
+							  (float*)disparity.data, (PDense3DDepth)depth3d.data)){
+		Dense3DErrorCode error = Dense3DGetErrorCode();
+		ROS_INFO("Could not get depth data. %i", (int) error);
+	}
+
+	return depth3d;
+}
+
+bool DUOStereoDriver::setCameraInfo(void)
+{
+	sensor_msgs::CameraInfo left_camera_info;
+	sensor_msgs::CameraInfo right_camera_info;
+
+	left_camera_info.width = _duoIntrinsics.w;
+	left_camera_info.height = _duoIntrinsics.h;
+	right_camera_info.width = _duoIntrinsics.w;
+	right_camera_info.height = _duoIntrinsics.h;
+
+	for(int i = 0; i < 9; i++)
+	{
+		left_camera_info.R[i] = _duoExtrinsics.rotation[i];
+		right_camera_info.R[i] = _duoExtrinsics.rotation[i];
+	}
+
+	for(int i = 0; i < 12; i++)
+	{
+		left_camera_info.P[i] = _duoIntrinsics.left[i];
+		right_camera_info.P[i] = _duoIntrinsics.right[i];
+	}
+
+	_cinfo[0]->setCameraInfo(left_camera_info);
+	_cinfo[1]->setCameraInfo(right_camera_info);
 }
 
 
@@ -222,8 +352,6 @@ bool DUOStereoDriver::initializeDUO()
 	/* 
 	 * Grab the resolution width and height, for temporary resolution enumeration
 	 */
-	int 	resWidth;
-	int 	resHeight;
 	_priv_nh.param("resolution_width", 	resWidth, 752);
 	_priv_nh.param("resolution_height", resHeight, 480);
 
@@ -251,47 +379,23 @@ bool DUOStereoDriver::initializeDUO()
 	 */
 	_priv_nh.param<bool>("use_DUO_imu",  _useDUO_Imu,  false);
 	_priv_nh.param<bool>("use_DUO_LEDs", _useDUO_LEDs, false);
+	_priv_nh.param<bool>("publishDepth", _publishDepth, false);
+	_priv_nh.param<bool>("publishDepthImage", _publishDepthImage, false);
 
-	_priv_nh.param<bool>("use_DUO_calibration",  _useDUOCalibration,  true);
-
-	_priv_nh.param<bool>("Dense3D",  _useDense3D,  false);
-
-	if(_useDense3D)
+	if (_useDUO_Imu)
 	{
-		// _dense3d = new Dense3D();
+		tempPub = _camera_nh.advertise<std_msgs::Float32>("temperature", 10);
+		imuPub = _camera_nh.advertise<sensor_msgs::Imu>("imu", 10);
 	}
 
-	if(_useDUOCalibration)
+	if (_publishDepth)
 	{
-		if(this->getCameraParameters(_duoIntrinsics, _duoExtrinsics))
-		{
-			this->setCameraInfo();
-		}
-		else
-		{
-			ROS_ERROR_STREAM("Cannot get Camera Calibration Parameters.");
-			return false;		
-		}
+		depthPub = _camera_nh.advertise<sensor_msgs::PointCloud2>("pointcloud", 2);
 	}
-	else
+
+	if (_publishDepthImage)
 	{
-		// set camera_info_url using launch file
-		std::string camera_info_url_left, camera_info_url_right;
-		_priv_nh.param<std::string>("camera_info_left", camera_info_url_left, "");
-		_priv_nh.param<std::string>("camera_info_right", camera_info_url_right, "");
-
-		if( _cinfo[0]->validateURL( camera_info_url_left ) && _cinfo[1]->validateURL( camera_info_url_right ) )
-		{
-			_cinfo[0]->loadCameraInfo( camera_info_url_left );
-			_cinfo[1]->loadCameraInfo( camera_info_url_right );
-
-			ROS_INFO("custom DUO calibration files loaded");
-		}
-		else
-		{
-			ROS_ERROR("Calibration URL is invalid.");
-			ROS_WARN("Will continue to publish uncalibrated images!");
-		}
+		_depthImagePub = _it->advertise("depth_image", 1);
 	}
 
 
@@ -321,7 +425,30 @@ bool DUOStereoDriver::initializeDUO()
 			SetDUOExposure(_duoInstance, _duoExposure);
 			SetDUOGain(_duoInstance, _duoGain);
 			SetDUOLedPWM(_duoInstance, _duoLEDLevel);
-			SetDUOCameraSwap(_duoInstance, 1); // Switches left and right images
+			SetDUOCameraSwap(_duoInstance, _duoCameraSwap); // Switches left and right images
+			SetDUOUndistort(_duoInstance, true);
+
+			// Get DUO calibration intrinsics and extrinsics
+			if(!GetDUOCalibrationPresent(_duoInstance))
+			{
+				ROS_ERROR("DUO camera calibration data not present\n");
+				return false;
+			}
+			else
+			{
+				bool result = GetDUOIntrinsics(_duoInstance, &_duoIntrinsics);
+
+				if (result)
+					result = GetDUOExtrinsics(_duoInstance, &_duoExtrinsics);
+
+				if (!result)
+				{
+					ROS_ERROR("Could not get DUO camera calibration data\n");
+					return false;
+				}
+			}
+
+			setCameraInfo();
 
 		}
 		else
@@ -330,6 +457,10 @@ bool DUOStereoDriver::initializeDUO()
 			return false;
 		}
 
+		_duoInitialized = true;
+
+		if (_publishDepth)
+			initializeDense3D();
 		return true;
 	}
 	else
@@ -341,45 +472,49 @@ bool DUOStereoDriver::initializeDUO()
 	return false;
 }
 
-bool DUOStereoDriver::setCameraInfo(void)
-{
-	if (_duoIntrinsics != NULL && _duoExtrinsics != NULL)
+bool DUOStereoDriver::initializeDense3D() {
+
+	_priv_nh.param("numDisparities", _numDisparities, 2);
+	_priv_nh.param("sadWindowSize"		, _sadWindowSize 		, 6);
+	_priv_nh.param("preFilterCap"		, _preFilterCap			, 28);
+	_priv_nh.param("uniquenessRatio"	, _uniquenessRatio		, 27);
+	_priv_nh.param("speckleWindowSize"	, _speckleWindowSize	, 52);
+	_priv_nh.param("speckleRange"		, _speckleRange			, 14);
+	_priv_nh.param("dense3dMode"		, _dense3dMode			, 0);
+
+	ROS_INFO("Initiliazing DUO Dense 3D");
+	if (!Dense3DOpen(&_dense3dInstance))
 	{
-		//_ciService = _camera_nh.serviceClient<sensor_msgs::SetCameraInfo>("/set_camera_info");
-
-		sensor_msgs::CameraInfo 	left_camera_info;
-		sensor_msgs::CameraInfo 	right_camera_info;
-		//sensor_msgs::SetCameraInfo 	setCameraInfo;
-
-		left_camera_info.width 		= _duoIntrinsics->w;
-		left_camera_info.height 	= _duoIntrinsics->h;
-
-		right_camera_info.width 	= _duoIntrinsics->w;
-		right_camera_info.height 	= _duoIntrinsics->h;
-
-		for(int i = 0; i < 9; i++)
-		{
-			left_camera_info.R[i] 	= _duoExtrinsics->rotation[i];
-			right_camera_info.R[i] 	= _duoExtrinsics->rotation[i];
-		}
-		for(int i = 0; i < 12; i++)
-		{
-			left_camera_info.P[i] 		= _duoIntrinsics->left[i];
-			right_camera_info.P[i] 		= _duoIntrinsics->right[i];
-		}
-
-
-		_cinfo[0]->setCameraInfo(left_camera_info);
-		_cinfo[1]->setCameraInfo(right_camera_info);
-
-
-		//setCameraInfo.request.camera_info = camera_info;	
+		ROS_ERROR("Could not open dense 3d");
 	}
-	else
+
+	_priv_nh.param<std::string>("dense3dLicense"		, _duoDense3dLicense	, "96WWM-3C2W6-AZ66J-P69MJ-LBFHK");
+
+	//if (!SetDense3DLicense(&_dense3dInstance, _duoDense3dLicense.c_str()))
+	if (!SetDense3DLicense(_dense3dInstance, "96WWM-3C2W6-AZ66J-P69MJ-LBFHK"))
 	{
-		ROS_ERROR_STREAM("DUO Intrinsic/Extrinsic parameters not set");
+		ROS_ERROR("Invalid license key for Dense3D");
+	}
+
+
+	SetDense3DMode(_dense3dInstance, _dense3dMode);
+	SetDense3DNumDisparities(_dense3dInstance, _numDisparities);
+	SetDense3DSADWindowSize(_dense3dInstance, _sadWindowSize);
+	SetDense3DPreFilterCap(_dense3dInstance, _preFilterCap);
+	SetDense3DUniquenessRatio(_dense3dInstance, _uniquenessRatio);
+	SetDense3DSpeckleWindowSize(_dense3dInstance, _speckleWindowSize);
+	SetDense3DSpeckleRange(_dense3dInstance, _speckleRange);
+
+	if (!SetDense3DImageSize(_dense3dInstance, resWidth, resHeight))
+	{
+		ROS_ERROR("Could not get set Dense3D image size\n");
 		return false;
 	}
+
+	// Set Dense3D parameters
+	SetDense3DCalibration(_dense3dInstance, &_duoIntrinsics, &_duoExtrinsics);
+
+	return true;
 }
 
 // this callback function is called whenever the dynamic_reconfigure server (this node)
@@ -423,6 +558,41 @@ void DUOStereoDriver::dynamicCallback(duo3d_ros::DuoConfig &config, uint32_t lev
   		SetDUOVFlip(_duoInstance, _duoVerticalFlip);
   	}
 
+  	if (_numDisparities != config.numDisparities){
+		_numDisparities = config.numDisparities;
+		SetDense3DNumDisparities(_dense3dInstance, _numDisparities);
+	}
+
+	if (_sadWindowSize != config.sadWindowSize) {
+		_sadWindowSize = config.sadWindowSize;
+		SetDense3DSADWindowSize(_dense3dInstance, _sadWindowSize);
+	}
+
+	if (_preFilterCap != config.preFilterCap) {
+		_preFilterCap = config.preFilterCap;
+		SetDense3DPreFilterCap(_dense3dInstance, _preFilterCap);
+	}
+
+	if (_uniquenessRatio != config.uniquenessRatio) {
+		_uniquenessRatio = config.uniquenessRatio;
+		SetDense3DUniquenessRatio(_dense3dInstance, _uniquenessRatio);
+	}
+
+	if (_speckleWindowSize != config.speckleWindowSize) {
+		_speckleWindowSize = config.speckleWindowSize;
+		SetDense3DSpeckleWindowSize(_dense3dInstance, _speckleWindowSize);
+	}
+
+	if (_speckleRange != config.speckleRange) {
+		_speckleRange = config.speckleRange;
+		SetDense3DSpeckleRange(_dense3dInstance, _speckleRange);
+	}
+
+	if (_dense3dMode != config.dense3dMode) {
+		_dense3dMode = config.dense3dMode;
+		SetDense3DMode(_dense3dInstance, _dense3dMode);
+	}
+
 }
 
 
@@ -440,14 +610,60 @@ void DUOStereoDriver::startDUO()
 	ROS_INFO("Starting DUO...");
 	StartDUO(_duoInstance, DUOCallback, NULL);
 	ROS_INFO("DUO Started.");
+
+	if (_publishDepth)
+		startDense3D();
+}
+
+void DUOStereoDriver::startDense3D()
+{
+	// If we could successfully open the DUO, then lets start it to finish
+	// the initialization
+
+
 }
 
 
 void DUOStereoDriver::shutdownDUO()
 {
+	if (_publishDepth)
+		shutdownDense3D();
+
 	ROS_WARN("Shutting down DUO Camera.");
 	StopDUO(_duoInstance);
 	CloseDUO(_duoInstance);
+}
+
+void DUOStereoDriver::shutdownDense3D()
+{
+	ROS_WARN("Shutting down DUO Camera.");
+	if (_dense3dInstance != NULL)
+		Dense3DClose(&_dense3dInstance);
+}
+
+Vec3b DUOStereoDriver::HSV2RGB(float hue, float sat, float val)
+{
+	float x, y, z;
+
+	if(hue == 1) hue = 0;
+	else         hue *= 6;
+
+	int i = static_cast<int>(floorf(hue));
+	float f = hue - i;
+	float p = val * (1 - sat);
+	float q = val * (1 - (sat * f));
+	float t = val * (1 - (sat * (1 - f)));
+
+	switch(i)
+	{
+		case 0: x = val; y = t; z = p; break;
+		case 1: x = q; y = val; z = p; break;
+		case 2: x = p; y = val; z = t; break;
+		case 3: x = p; y = q; z = val; break;
+		case 4: x = t; y = p; z = val; break;
+		case 5: x = val; y = p; z = q; break;
+	}
+	return Vec3b((uchar)(x * 255), (uchar)(y * 255), (uchar)(z * 255));
 }
 
 } // end namespace duoStereo_driver
